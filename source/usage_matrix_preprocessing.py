@@ -72,12 +72,8 @@ def standardize_usage_matrix_log_exp(usage_matrix: pd.DataFrame, annotation_colu
     log_stand_usage_matrix = standardize_usage_matrix_log(usage_matrix, annotation_columns)
     for name in log_stand_usage_matrix.columns:
         if 'TR' in name:
-            # a, b = get_sigmoid_parameters_for_v_gene(raw_freq=norm_usage_matrix[name],
-            #                                          stand_freq=log_stand_usage_matrix[name],
-            #                                          v_gene=name)
             a = 1
             b = norm_usage_matrix[name].mean()
-            print(f'b for {name} is {b}')
             log_stand_usage_matrix[name] = log_stand_usage_matrix[name].apply(lambda x: 2 * b * logistic.cdf(x))
     return log_stand_usage_matrix
 
@@ -85,9 +81,7 @@ def standardize_usage_matrix_log_exp(usage_matrix: pd.DataFrame, annotation_colu
 def prepare_usage_matrix(usage_matrix: pd.DataFrame,
                          annotation_columns=['run', 'project', 'covid', 'hla', 'number_of_clonotypes'],
                          standardize_method=None):
-    print(usage_matrix)
     norm_usage_matrix = normalize_usage_matrix_by_rows(usage_matrix)
-    print(norm_usage_matrix)
     normalized_usage_matrix = usage_matrix[annotation_columns]
     for col in norm_usage_matrix.columns:
         normalized_usage_matrix.loc[:, col] = norm_usage_matrix[col]
@@ -96,22 +90,22 @@ def prepare_usage_matrix(usage_matrix: pd.DataFrame,
     return normalized_usage_matrix
 
 
-def create_usage_matrices_for_fmba():
-    suffix = ''
-    usage_matrix = pd.read_csv('../data/usage_matrix' + suffix + '.csv').drop(columns=['Unnamed: 0'])
+def create_usage_matrices_for_fmba_beta():
+    suffix = 'fmba_TRB'
+    usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0'])
     norm_um = prepare_usage_matrix(usage_matrix)
-    norm_um.to_csv('../data/normalized_usage_matrix.csv')
+    norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(usage_matrix, standardize_method=standardize_usage_matrix_log_exp).to_csv(
-        '../data/standardized_log_exp_usage_matrix_by_' + suffix + '.csv')
+        f'data/standardized_usage_matrix_{suffix}.csv')
 
 
 def create_usage_matrices_for_fmba_alpha():
-    suffix = 'alpha_fmba'
-    usage_matrix = pd.read_csv(f'../data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0'])
+    suffix = 'fmba_TRA'
+    usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0'])
     norm_um = prepare_usage_matrix(usage_matrix)
-    norm_um.to_csv(f'../data/normalized_usage_matrix_{suffix}.csv')
+    norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(usage_matrix, standardize_method=standardize_usage_matrix_log_exp).to_csv(
-        f'../data/standardized_log_exp_usage_matrix_by_{suffix}.csv')
+        f'data/standardized_usage_matrix_{suffix}.csv')
 
 
 def create_usage_matrices_for_adaptive():
@@ -144,7 +138,10 @@ def create_usage_matrices_for_functional():
 
 
 if __name__ == "__main__":
-    # create_usage_matrices_for_fmba_alpha()
-    create_usage_matrices_for_joint()
-    # create_usage_matrices_for_adaptive()
-    # create_usage_matrices_for_functional()
+    if 'snakemake' in globals():
+        if snakemake.params.gene == 'TRB':
+            if snakemake.params.platform == 'fmba':
+                create_usage_matrices_for_fmba_beta()
+        if snakemake.params.gene == 'TRA':
+            if snakemake.params.platform == 'fmba':
+                create_usage_matrices_for_fmba_alpha()

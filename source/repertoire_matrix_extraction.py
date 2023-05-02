@@ -16,14 +16,13 @@ def generate_v_gene_usage_vector(sample, functional_seqs_type='all'):
     return v_gene_to_usage_dict
 
 
-def process_all_files(all_runs_path, names_mapping, dataset='fmba_2021', get_extra_info=False, chain_to_read='TRB',
+def process_all_files(all_runs_path, names_mapping, raw_data_path, dataset='fmba', get_extra_info=False, chain_to_read='TRB',
                       functional_seqs_type='all'):
     all_v_genes = set()
     runs = pd.read_csv(all_runs_path, sep='\t')
-    if dataset == 'fmba_2021':
+    if dataset == 'fmba':
         runs = runs[
-            (runs[names_mapping['file_name']].str.contains(chain_to_read)) & (
-                    runs[names_mapping['covid']] != 'unknown')]
+            (runs[names_mapping['file_name']].str.contains(chain_to_read))]
     elif dataset == 'adaptive_new':
         runs[names_mapping['file_name']] = runs[names_mapping['file_name']] + '.tsv.txt'
     elif dataset == 'hip_full':
@@ -33,7 +32,7 @@ def process_all_files(all_runs_path, names_mapping, dataset='fmba_2021', get_ext
     for run, project in tqdm(zip(runs[names_mapping['file_name']], runs[names_mapping['dataset']]), total=len(runs),
                              desc='Extracting v gene usage vectors'):
 
-        data = pd.read_csv(f'/projects/fmba_covid/1_data_links/{dataset}/{run}', sep='\t')
+        data = pd.read_csv(f'{raw_data_path}/{dataset}/{run}')
         run_repertoire = generate_v_gene_usage_vector(data, functional_seqs_type=functional_seqs_type)
         all_v_genes.update(list(run_repertoire.keys()))
         repertoires_list.append(run_repertoire)
@@ -93,28 +92,30 @@ def run_joint_matrix_creation():
     pd.concat([fmba, adaptive, hip]).to_csv('../data/usage_matrix_joint_new.csv')
 
 
-def run_alpha_chain_matrix_creation():
+def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
     process_all_files(
-        all_runs_path='/projects/fmba_covid/1_data_links/fmba_2021.txt',
+        all_runs_path=desc_path,
         names_mapping={'file_name': 'file.name',
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
-        dataset='fmba_2021',
+        raw_data_path=raw_data_path,
+        dataset='fmba',
         get_extra_info=True,
         chain_to_read='TRA'
-    ).to_csv('../data/usage_matrix_alpha_fmba.csv')
+    ).to_csv(output_path)
 
 
-def run_beta_chain_fmba_matrix_creation():
+def run_beta_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
     process_all_files(
-        all_runs_path='/projects/fmba_covid/1_data_links/fmba_2021.txt',
+        all_runs_path=desc_path,
         names_mapping={'file_name': 'file.name',
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
-        dataset='fmba_2021',
+        raw_data_path=raw_data_path,
+        dataset='fmba',
         get_extra_info=True,
         chain_to_read='TRB'
-    ).to_csv('../data/usage_matrix.csv')
+    ).to_csv(output_path)
 
 
 def run_beta_chain_adaptive_matrix_creation():
@@ -163,10 +164,14 @@ def run_beta_chain_fmba_matrix_creation_functional_nonfunctional():
 
 
 if __name__ == "__main__":
-    # run_joint_matrix_creation()
-    # run_alpha_chain_matrix_creation()
-    # run_beta_chain_fmba_matrix_creation()
-    # run_beta_chain_adaptive_matrix_creation()
-    # run_beta_chain_fmba_matrix_creation_functional_nonfunctional()
-    # run_beta_chain_hip_matrix_creation()
-    run_joint_matrix_creation()
+    if 'snakemake' in globals():
+        if snakemake.params.gene == 'TRB':
+            if snakemake.params.platform == 'fmba':
+                run_beta_chain_fmba_matrix_creation(desc_path=snakemake.params.desc_path,
+                                                    output_path=snakemake.output[0],
+                                                    raw_data_path=snakemake.params.raw_data_path)
+        if snakemake.params.gene == 'TRA':
+            if snakemake.params.platform == 'fmba':
+                run_alpha_chain_fmba_matrix_creation(desc_path=snakemake.params.desc_path,
+                                                     output_path=snakemake.output[0],
+                                                     raw_data_path=snakemake.params.raw_data_path)
