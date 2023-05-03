@@ -1,8 +1,4 @@
-import os
-
 import pandas as pd
-
-os.chdir('/home/ekvlasova/covid-t-cell-classifier')
 
 
 def create_significant_clonotype_matrix(clonotype_matrix_path, significant_clones_path, save_path):
@@ -75,15 +71,8 @@ def sign_clone_matrices_for_all_alleles_covid_based():
 
 
 if __name__ == "__main__":
-    # sign_clone_matrices_for_all_alleles_covid()
-    # sign_clone_matrices_for_all_alleles_covid_based()
-    # sign_clone_matrices_hla_with_adaptive()
-    create_significant_clonotype_matrix(clonotype_matrix_path='data/adaptive_clone_results/clonotype_matrix_fmba_adaptive_top_500k_1_mismatch.csv',
-                                        significant_clones_path=f'data/adaptive_clone_results/fold_change_adaptive_clones.csv',
-                                        save_path=f'data/adaptive_clone_results/sign_clone_matrix_fold_change.csv')
-    # df = pd.read_csv('data/adaptive_clone_results/covid_cm_for_all_associated_adaptive_1mis_500k_top.csv').drop(
-    #     columns=['Unnamed: 0']
-    # )
-    # print(df.shape)
-    # df = df[~df.run.str.contains('TRB')].to_csv(
-    #     'data/adaptive_clone_results/covid_cm_for_all_associated_adaptive_1mis_500k_top.csv')
+    if 'snakemake' in globals():
+        create_significant_clonotype_matrix(clonotype_matrix_path=snakemake.input[0],
+                                            significant_clones_path=snakemake.input[1],
+                                            save_path=snakemake.output[0])
+

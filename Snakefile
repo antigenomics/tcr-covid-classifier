@@ -112,3 +112,47 @@ rule create_sample_to_num_of_clones_mapping_fmba_TRA:
            f'{config["all_raw_data_path"]}/downsampled_fmba_TRA',
     output: 'data/run_to_number_of_clones_fmba_TRA.csv'
     script: 'source/get_sum_clonotypes_per_file.py'
+
+rule fisher_test_fmba_TRA:
+    threads: 40
+    input: 'data/standardized_usage_matrix_fmba_TRA.csv',
+           'data/run_to_number_of_clones_fmba_TRA.csv',
+           'data/clone_matrix_fmba_TRA_top_500k.csv'
+    params: n_clones=500000,
+            platform='fmba'
+    output: 'data/covid_significant_clones_fmba_TRA_top_500k.csv',
+            'data/covid_significant_clone_pvals_fmba_TRA_top_500k.csv'
+    script: 'source/tests_analysis/covid_test_250k.py'
+
+rule fisher_test_fmba_TRB:
+    threads: 40
+    input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+           'data/run_to_number_of_clones_fmba_TRB.csv',
+           'data/clone_matrix_fmba_TRB_top_500k.csv'
+    params: n_clones=500000,
+            platform='fmba'
+    output: 'data/covid_significant_clones_fmba_TRB_top_500k.csv',
+            'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
+    script: 'source/tests_analysis/covid_test_250k.py'
+
+rule fisher_significant_clone_matrix_fmba_TRB:
+    input: 'data/clone_matrix_fmba_TRB_top_500k.csv',
+           'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
+rule fisher_significant_clone_matrix_fmba_TRA:
+    input: 'data/clone_matrix_fmba_TRA_top_500k.csv',
+           'data/covid_significant_clones_fmba_TRA_top_500k.csv'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
+rule olga_pgen_generation_fmba_TRB:
+    input: 'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+    output: 'data/covid_fmba_TRB_pgen.csv'
+    shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
+
+rule olga_pgen_generation_fmba_TRA:
+    input: 'data/covid_significant_clones_fmba_TRA_top_500k.csv'
+    output: 'data/covid_fmba_TRA_pgen.csv'
+    shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'

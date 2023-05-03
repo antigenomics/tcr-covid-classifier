@@ -143,12 +143,25 @@ def test_for_all_hla_alleles():
         covid_test_allele_based(hla)
 
 
+def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path, n_clones):
+    global run_to_number_of_clonotypes
+    run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
+
+    covid_test_matrix_based(
+        clonotype_matrix=pd.read_csv(clonotype_matrix_path),
+        desc_path=um_path,
+        save_path=save_path,
+        pval_save_path=pval_save_path,
+        n=n_clones,
+        fisher=True)
+
+
 if __name__ == "__main__":
-    run_to_number_of_clonotypes = pd.read_csv('data/run_to_number_of_clonotypes.csv').set_index('run')
-    # covid_test_for_alpha_chain(500000)
-    # covid_test_for_beta_chain_adaptive()
-    batch_test_for_beta_chain_adaptive()
-    # covid_test_matrix_based(clonotype_matrix_path=f'data/clonotype_matrix_fmba_top_500k_1_mismatch.csv',
-    #                         desc_path=f'data/standardized_log_exp_usage_matrix_joint_new.csv',
-    #                         save_path=f'data/hla_covid_results/covid_clones_all_hla_top_500k_1_mismatch_fisher.csv',
-    #                         fisher=True)
+    if 'snakemake' in globals():
+        if snakemake.params.platform == 'fmba':
+            covid_test_for_fmba(run_to_number_of_clones_path=snakemake.input[1],
+                                clonotype_matrix_path=snakemake.input[2],
+                                um_path=snakemake.input[0],
+                                save_path=snakemake.output[0],
+                                pval_save_path=snakemake.output[1],
+                                n_clones=snakemake.params.n_clones)
