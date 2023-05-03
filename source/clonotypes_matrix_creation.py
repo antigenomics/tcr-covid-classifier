@@ -29,7 +29,7 @@ def process_one_file(run):
     run, mismatch_max, most_common_clonotypes, raw_data_folder, i = run
     start = time.time()
     try:
-        cur_data = pd.read_csv(f'/projects/fmba_covid/1_data_links/{raw_data_folder}/{run}')
+        cur_data = pd.read_csv(f'{raw_data_folder}/{run}')
     except Exception as e:
         return
     res = []
@@ -75,7 +75,7 @@ def process_all_files(save_path, most_common_clonotypes, um, mismatch_max=0, raw
     run_to_presence_of_clonotypes['cdr3aa'] = most_common_clonotypes['cdr3aa']
     runs = [(x, mismatch_max, most_common_clonotypes, raw_data_folder, i) for i, x in enumerate(um['run'].tolist())]
     # runs = [(x, mismatch_max) for x in um['run'].tolist() if 'Keck' in x or 'HIP' in x]
-    with Pool(80) as p:
+    with Pool(snakemake.threads) as p:
         p.map(process_one_file, runs)
     data = {x: y for x, y in run_to_presence_of_clonotypes.items()}
     # pd.DataFrame.from_dict(data=data).to_csv(f'../data/clonotype_matrix_50k_{mismatch_max}_mismatch_top.csv', index=False)
@@ -127,14 +127,12 @@ def clonotype_matrix_for_projects(projects_list, most_common_clones_path, save_p
 
 
 if __name__ == "__main__":
-    for mismatch in [0, 1]:
-        clonotype_matrix_for_projects(projects_list=['HIP', 'KECK'],
-                                      most_common_clones_path='../data/anomaly_clones/hip_top_500k_clones.csv',
-                                      save_path=f'../data/anomaly_clones/hip_cm_top_500k_{mismatch}_mis.csv',
-                                      mismatch=mismatch)
-        clonotype_matrix_for_projects(projects_list=['COVID-19-ISB', 'COVID-19-Adaptive',
-                                                  'COVID-19-HUniv12Oct', 'COVID-19-DLS', 'COVID-19-BWNW',
-                                                  'COVID-19-NIH/NIAID', 'COVID-19-IRST/AUSL'],
-                                      most_common_clones_path='../data/anomaly_clones/adaptive_top_500k_clones.csv',
-                                      save_path=f'../data/anomaly_clones/adaptive_cm_top_500k_{mismatch}_mis.csv',
-                                      mismatch=mismatch)
+    if 'snakemake' in globals():
+        if snakemake.params.platform == 'fmba':
+            um = pd.read_csv(snakemake.input[0]).drop(columns=['Unnamed: 0']).fillna(0)
+            process_all_files(save_path=snakemake.output[0],
+                              most_common_clonotypes=pd.read_csv(snakemake.input[2]),
+                              um=um,
+                              mismatch_max=1,
+                              raw_data_folder=snakemake.input[1],
+                              )

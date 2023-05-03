@@ -1,8 +1,6 @@
 import os
 from multiprocessing import Manager, Pool
 
-os.chdir('/home/ekvlasova/covid-t-cell-classifier')
-
 import pandas as pd
 
 from scipy.stats import fisher_exact, binom, chi2_contingency

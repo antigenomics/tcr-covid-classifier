@@ -13,13 +13,11 @@ warnings.filterwarnings("ignore")
 error_list = []
 
 
-def update_counts_for_run(path_to_run, run_frequencies,
-                          path_to_save=f'/projects/fmba_covid/1_data_links/downsampled_alpha'):
+def update_counts_for_run(path_to_run, run_frequencies, path_to_save):
     run_name = path_to_run.split('/')[-1]
     print(f'started {run_name} at {datetime.datetime.now()}')
     try:
-        raw_data = pd.read_csv(path_to_run, sep='\t')
-
+        raw_data = pd.read_csv(path_to_run)
         v_gene_names = set(run_frequencies.keys()).intersection(set(raw_data['v'].unique()))
 
         old_run_frequencies = run_frequencies.copy()
@@ -73,37 +71,43 @@ def update_counts_for_run(path_to_run, run_frequencies,
     except Exception as e:
         error_list.append(path_to_run)
 
-    print(f'ended {path_to_run} at {datetime.datetime.now()}')
+    print(f'ended {path_to_save}/{run_name} at {datetime.datetime.now()}')
 
 
 def process_one_file(run):
     run_frequencies = transposed_um[[run]].to_dict()[run]
-    if 'TCR' in run:
-        dataset = 'adaptive_new'
-    elif 'TR' in run:
-        dataset = 'fmba_2021'
-    else:
-        dataset = 'hip_full'
     freqs_to_use = {x: y for (x, y) in run_frequencies.items() if 'TR' in x}
-    update_counts_for_run(f'/projects/fmba_covid/1_data_links/{dataset}/{run}', freqs_to_use)
+    update_counts_for_run(f'{raw_data_path}/{platform}/{run}', freqs_to_use, path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
 
 
 def process_all_files():
     runs = transposed_um.columns
-    with Pool(72) as p:
+    with Pool(snakemake.threads) as p:
         p.map(process_one_file, runs)
 
 
 if __name__ == "__main__":
     print('started at', datetime.datetime.now())
-    usage_matrix_path = '../data/standardized_log_exp_usage_matrix_by_v_gene_alpha_fmba.csv'
-    um = pd.read_csv(usage_matrix_path).drop(columns=['Unnamed: 0']).fillna(0)
-    um["sum"] = um.sum(axis=1, numeric_only=True)
-    for column in um.columns:
-        if column.startswith('TR'):
-            um[column] = um[column] / um['sum']
-    um = um.drop(columns=['sum'])
-    transposed_um = um.set_index('run').transpose()
-    process_all_files()
+
+    if 'snakemake' in globals():
+        usage_matrix_path = snakemake.input[0]
+        platform = snakemake.params.platform
+        gene = snakemake.params.gene
+        raw_data_path = snakemake.config['all_raw_data_path']
+        save_path = snakemake.output[0]
+
+        import os
+        os.mkdir(save_path)
+
+        um = pd.read_csv(usage_matrix_path).drop(columns=['Unnamed: 0']).fillna(0)
+        um["sum"] = um.sum(axis=1, numeric_only=True)
+        for column in um.columns:
+            if column.startswith('TR'):
+                um[column] = um[column] / um['sum']
+        um = um.drop(columns=['sum'])
+
+        transposed_um = um.set_index('run').transpose()
+        process_all_files()
+
     print('finished at', datetime.datetime.now())
     print("errors in", error_list)

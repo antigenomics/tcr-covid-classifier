@@ -11,7 +11,7 @@ def process_all_files(usage_matrix_path, save_path, method='top', count_of_clone
         if runs_to_process is not None and run not in runs_to_process:
             continue
         try:
-            cur_data = pd.read_csv(f'/projects/fmba_covid/1_data_links/{raw_data_folder}/{run}')
+            cur_data = pd.read_csv(f'{raw_data_folder}/{run}')
             cur_data = cur_data[['cdr3aa']].drop_duplicates()
             cur_data['count'] = 1
             datasets_to_concat.append(cur_data)
@@ -88,13 +88,13 @@ def clonotypes_extraction_procedure_for_adaptive_batch():
                       runs_to_process=list(desc[desc.is_keck != 'yes'].run))
 
 
-def clonotypes_extraction_procedure_for_fmba_alpha():
-    desc = pd.read_csv('../data/standardized_log_exp_usage_matrix_by_v_gene_alpha_fmba.csv')
-    process_all_files(usage_matrix_path='../data/standardized_log_exp_usage_matrix_by_v_gene_alpha_fmba.csv',
-                      save_path=f'../data/alpha/most_used_500k_clonotypes_top.csv',
+def clonotypes_extraction_procedure_for_fmba(um_path, save_path, n_clones, resampled_samples_path):
+    desc = pd.read_csv(um_path)
+    process_all_files(usage_matrix_path=um_path,
+                      save_path=save_path,
                       method='top',
-                      count_of_clones=500000,
-                      raw_data_folder='downsampled_alpha',
+                      count_of_clones=n_clones,
+                      raw_data_folder=resampled_samples_path,
                       runs_to_process=list(desc.run))
 
 
@@ -109,8 +109,9 @@ def clonotype_extraction_procedure_by_batch_list(batch_list, save_path):
 
 
 if __name__ == "__main__":
-    clonotypes_extraction_procedure_for_adaptive_batch()
-    # clonotype_extraction_procedure_by_batch_list(['HIP', 'KECK'], '../data/anomaly_clones/hip_top_500k_clones.csv')
-    # clonotype_extraction_procedure_by_batch_list(['COVID-19-ISB', 'COVID-19-Adaptive',
-    #    'COVID-19-HUniv12Oct', 'COVID-19-DLS', 'COVID-19-BWNW',
-    #    'COVID-19-NIH/NIAID', 'COVID-19-IRST/AUSL'], '../data/anomaly_clones/adaptive_top_500k_clones.csv')
+    if 'snakemake' in globals():
+        if snakemake.params.platform == 'fmba':
+            clonotypes_extraction_procedure_for_fmba(um_path=snakemake.input[0],
+                                                     save_path=snakemake.output[0],
+                                                     n_clones=snakemake.params.n_clones,
+                                                     resampled_samples_path = snakemake.input[1])
