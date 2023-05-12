@@ -1,3 +1,9 @@
+# My TODOs
+3. Сделать картинку 3
+4. Сделать всю подготовку для адаптив
+5. Сделать картинку 5
+
+
 # TCR alpha and beta based classifier for COVID-19 status prediction
 The repository contains code for paper "Predicting SARS-CoV-2 exposure using T-cell 
 repertoire sequencing and machine learning".

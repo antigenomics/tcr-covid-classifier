@@ -606,3 +606,16 @@ def plot_volcano(data, pval_threshold, fold_change_threshold, pval_column='pval'
     ax.axhline(y=pval_threshold, linestyle='dashed', color='grey')
     ax.set_yscale('log')
     ax.invert_yaxis()
+
+
+def plot_pandas_df_into_png(df, output_path):
+    fig, ax = plt.subplots()
+
+    # hide axes
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    ax.table(cellText=df.values, colLabels=df.columns, loc='center')
+    fig.tight_layout()
+
+    plt.savefig(output_path)

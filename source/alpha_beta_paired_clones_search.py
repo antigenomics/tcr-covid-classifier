@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Manager, Pool
 from utils.data_utils import prepare_clonotype_matrix
-
+from utils.viz_utils import plot_pandas_df_into_png
 clone_to_df = Manager().dict()
 
 
@@ -82,6 +82,25 @@ def make_metaclone_cm(cm, cluster_info):
     return pd.DataFrame(new_cm_cols)
 
 
+def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitopes, vdjdb, save_path):
+    alpha_index = []
+    beta_index = []
+    epi = []
+    species = []
+    for beta_cluster in res_beta.cluster.unique():
+        for alpha_cluster in res_alpha.cluster.unique():
+            if len(cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]) > 0:
+                for epi in cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]:
+                    alpha_index.append(alpha_cluster)
+                    beta_index.append(beta_cluster)
+                    epi.append(epi)
+                    species.append(vdjdb[vdjdb['antigen.epitope'] == epi].species[0])
+
+    df = pd.DataFrame(data={'alpha_cluster': alpha_index, 'beta_cluster': beta_index,
+                            'epitope': epi, 'species': species})
+    plot_pandas_df_into_png(df, save_path)
+
+
 def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_path):
     vdjdb = pd.read_csv(vdjdb_path, sep='\t')
     alpha_matrix = pd.read_csv(tra_cm_path).drop(columns=['Unnamed: 0'])
@@ -126,6 +145,7 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
 
     make_metaclone_cm(alpha_matrix, res_alpha).to_csv(snakemake.output[2])
     make_metaclone_cm(beta_matrix, res_beta).to_csv(snakemake.output[3])
+    plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitopes, vdjdb, snakemake.output[4])
 
 
 if __name__ == "__main__":
