@@ -4,7 +4,8 @@ import pandas as pd
 from multipy.fwer import hochberg
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import fisher_exact
-
+import random
+random.seed(42)
 
 def hdist(s1, s2):
     if len(s1) != len(s2):

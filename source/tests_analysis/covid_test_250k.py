@@ -23,8 +23,6 @@ def process_one_clone_binom(clone):
     P = (covid_data[clone].sum() + healthy_data[clone].sum()) / get_sum_clones_by_runs()
     p_val = 1 - binom.cdf(covid_clone, N, P)
     clone_to_pval[clone] = p_val
-    if len(clone_to_pval) % 100 == 0:
-        print(len(clone_to_pval))
 
 
 def process_one_clone_fisher(clone):
@@ -33,18 +31,19 @@ def process_one_clone_fisher(clone):
     covid_no_clone = get_sum_clones_by_runs(covid_data.run) - covid_clone
     no_covid_clone = healthy_data[clone].sum()
     no_covid_no_clone = get_sum_clones_by_runs(healthy_data.run) - no_covid_clone
-    res = chi2_contingency([[covid_clone, covid_no_clone], [no_covid_clone, no_covid_no_clone]])
-    if sum(map(lambda x: x < 5, res[3].flatten())) != 0:
-        res = fisher_exact([[covid_clone, covid_no_clone], [no_covid_clone, no_covid_no_clone]], alternative=alternative)
+    # res = chi2_contingency([[covid_clone, covid_no_clone], [no_covid_clone, no_covid_no_clone]])
+    # if sum(map(lambda x: x < 5, res[3].flatten())) != 0:
+    res = fisher_exact([[covid_clone, covid_no_clone], [no_covid_clone, no_covid_no_clone]], alternative=alternative)
 
     clone_to_pval[clone] = res[1]
-    print(f'dict size is {len(clone_to_pval)}')
+    if len(clone_to_pval) % 1000 == 0:
+        print(f'dict size is {len(clone_to_pval)}')
 
 
 def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, fisher=True, alternative='greater'):
     arguments = [(x, healthy_data, covid_data, alternative) for x in clonotype_matrix.columns]
     print(f'Testing started')
-    with Pool(30) as p:
+    with Pool(snakemake.threads) as p:
         if fisher:
             p.map(process_one_clone_fisher, arguments)
         else:

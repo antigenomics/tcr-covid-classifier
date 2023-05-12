@@ -4,6 +4,7 @@ import warnings
 from multiprocessing import Pool
 
 import numpy as np
+np.random.seed(42)
 import pandas as pd
 from math import floor
 from tqdm import tqdm

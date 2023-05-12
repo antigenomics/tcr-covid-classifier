@@ -114,4 +114,4 @@ if __name__ == "__main__":
             clonotypes_extraction_procedure_for_fmba(um_path=snakemake.input[0],
                                                      save_path=snakemake.output[0],
                                                      n_clones=snakemake.params.n_clones,
-                                                     resampled_samples_path = snakemake.input[1])
+                                                     resampled_samples_path=snakemake.input[1])

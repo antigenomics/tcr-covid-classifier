@@ -6,6 +6,16 @@ def prepare_run_column(df):
     return df
 
 
+def calculate_real_and_gen_proba(pgen_path, cm_path, run_to_number_of_clonotypes, make_bool_features=True):
+    pgen = pd.read_csv(pgen_path, header=None, names=['clone', 'pgen'])
+    sum_value = run_to_number_of_clonotypes.number_of_clones.sum()
+    cm = prepare_clonotype_matrix(cm_path, make_bool_features=make_bool_features).drop(columns=['run'])
+    preal = pd.DataFrame(cm.sum(axis=0) / sum_value).reset_index().rename(
+        columns={'cdr3aa': 'clone', 0: 'preal', 'index': 'clone'})
+    full_data = pgen.merge(preal)
+    return full_data
+
+
 def prepare_clonotype_matrix(clonotype_matrix_path, make_bool_features=False):
     print(f'Preparing {clonotype_matrix_path}')
     df = pd.read_csv(clonotype_matrix_path)

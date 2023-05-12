@@ -19,7 +19,7 @@ def generate_v_gene_usage_vector(sample, functional_seqs_type='all'):
 def process_all_files(all_runs_path, names_mapping, raw_data_path, dataset='fmba', get_extra_info=False, chain_to_read='TRB',
                       functional_seqs_type='all'):
     all_v_genes = set()
-    runs = pd.read_csv(all_runs_path, sep='\t')
+    runs = pd.read_csv(all_runs_path)
     if dataset == 'fmba':
         runs = runs[
             (runs[names_mapping['file_name']].str.contains(chain_to_read))]
@@ -95,7 +95,7 @@ def run_joint_matrix_creation():
 def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
     process_all_files(
         all_runs_path=desc_path,
-        names_mapping={'file_name': 'file.name',
+        names_mapping={'file_name': 'run',
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
         raw_data_path=raw_data_path,
@@ -108,7 +108,7 @@ def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
 def run_beta_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
     process_all_files(
         all_runs_path=desc_path,
-        names_mapping={'file_name': 'file.name',
+        names_mapping={'file_name': 'run',
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
         raw_data_path=raw_data_path,

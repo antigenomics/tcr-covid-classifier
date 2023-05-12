@@ -42,6 +42,7 @@ def standardize_usage_matrix(usage_matrix: pd.DataFrame, annotation_columns):
 
 def standardize_usage_matrix_log(usage_matrix: pd.DataFrame, annotation_columns):
     datasets = list(usage_matrix.project.unique())
+    print(datasets)
     matrices = []
     for name in datasets:
         usage_matrix_name = usage_matrix[usage_matrix['project'] == name]
@@ -51,11 +52,7 @@ def standardize_usage_matrix_log(usage_matrix: pd.DataFrame, annotation_columns)
         v_gene_names = v_genes.columns
         v_genes = pd.DataFrame(data=StandardScaler().fit_transform(v_genes), columns=v_gene_names)
         matrices.append(pd.concat([annotation.reset_index(drop=True), v_genes], axis=1))
-        cur_usage_matrix = pd.concat(matrices).reset_index(drop=True)
-        # norm_usage_matrix = normalize_usage_matrix_by_rows(cur_usage_matrix)
-        # normalized_usage_matrix = cur_usage_matrix[annotation_columns]
-        # for col in norm_usage_matrix.columns:
-        #     normalized_usage_matrix.loc[:, col] = norm_usage_matrix[col]
+    cur_usage_matrix = pd.concat(matrices).reset_index(drop=True)
     return cur_usage_matrix
 
 

@@ -1,4 +1,4 @@
 all_raw_data_path: '/projects/fmba_covid/publication'
 fmba_raw_path: '/projects/fmba_covid/publication/fmba'
 adaptive_raw_path: '/projects/fmba_covid/publication/adaptive'
-fmba_txt_desc: 'data/fmba_2021.txt'
+fmba_desc: 'data/preprocessed_fmba_metadata.csv'
