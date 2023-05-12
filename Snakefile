@@ -1,9 +1,16 @@
 configfile: 'config.yaml'
 
+rule all:
+  input:
+    'figures/fig1.png',
+    'figures/fig2.png',
+    'figures/fig4.png'
+
 rule preprocess_metadata:
     input: 'data/fmba_2021.txt'
     output: f'{config["fmba_desc"]}'
     script: 'source/preprocess_raw_desc_file.py'
+
 rule fmba_beta_usage_matrix_creation:
     threads: 1
     params: desc_path=f'{config["fmba_desc"]}',
@@ -33,8 +40,9 @@ rule clones_extraction_fmba_beta:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRB.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
-    params: n_clones=500000,
-            platform='fmba'
+    params: n_clones=3,
+            platform='fmba',
+            sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRB.csv'
     script: 'source/clonotypes_extraction_procedure.py'
 
@@ -116,8 +124,9 @@ rule clones_extraction_fmba_alpha:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRA.csv', f'/projects/fmba_covid/1_data_links/downsampled_alpha'
-    params: n_clones=500000,
-            platform='fmba'
+    params: n_clones=5,
+            platform='fmba',
+            sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRA.csv'
     script: 'source/clonotypes_extraction_procedure.py'
 

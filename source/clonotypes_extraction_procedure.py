@@ -20,18 +20,19 @@ def process_all_files(usage_matrix_path, save_path, method='top', count_of_clone
     full_data = pd.concat(datasets_to_concat)
     full_data = full_data[full_data.cdr3aa.str.isalpha()]
     print(len(full_data))
+    top = full_data.groupby(['cdr3aa'], as_index=False).count()
 
     if method == 'top':
-        top = full_data.groupby(['cdr3aa'], as_index=False).count()
         top = top.sort_values(by=['count'], ascending=False).head(count_of_clones)
 
     elif method == 'random-roulette':
-        top = full_data.groupby(['cdr3aa'], as_index=False).count()
         top = top.sample(n=count_of_clones, random_state=42, weights='count')
 
     elif method == 'random-uniform':
-        top = full_data.groupby(['cdr3aa'], as_index=False).count()
         top = top.sample(n=count_of_clones, random_state=42)
+
+    elif method == 'unique-occurence':
+        top = top[top['count'] > count_of_clones]
     top.to_csv(save_path, index=False)
 
 
@@ -88,11 +89,11 @@ def clonotypes_extraction_procedure_for_adaptive_batch():
                       runs_to_process=list(desc[desc.is_keck != 'yes'].run))
 
 
-def clonotypes_extraction_procedure_for_fmba(um_path, save_path, n_clones, resampled_samples_path):
+def clonotypes_extraction_procedure_for_fmba(um_path, save_path, n_clones, resampled_samples_path, method):
     desc = pd.read_csv(um_path)
     process_all_files(usage_matrix_path=um_path,
                       save_path=save_path,
-                      method='top',
+                      method=method,
                       count_of_clones=n_clones,
                       raw_data_folder=resampled_samples_path,
                       runs_to_process=list(desc.run))
@@ -113,5 +114,6 @@ if __name__ == "__main__":
         if snakemake.params.platform == 'fmba':
             clonotypes_extraction_procedure_for_fmba(um_path=snakemake.input[0],
                                                      save_path=snakemake.output[0],
+                                                     method=snakemake.params.sampling_method,
                                                      n_clones=snakemake.params.n_clones,
                                                      resampled_samples_path=snakemake.input[1])

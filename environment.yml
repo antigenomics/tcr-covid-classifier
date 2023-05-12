@@ -1,4 +1,4 @@
-name: null
+name: tcr-classifier
 channels:
   - bioconda
   - defaults
