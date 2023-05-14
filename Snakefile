@@ -93,6 +93,8 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
     script: 'source/leaks_deletion.py'
 
+# rule hla_specific_
+
 ########################################################################################################################
 
 rule fmba_alpha_usage_matrix_standardization:
@@ -183,7 +185,7 @@ rule TRA_TRB_pairing_analysis:
             'data/vdjdb.txt'
     output: 'data/TRA_TRB_cooccurence_matrix_cooccurence_85.csv', 'data/alpha_beta_paired_epitopes.csv',
             'data/clone_matrix_covid_fmba_TRA_metaclone.csv', 'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
-            'figures/cooccured_epitopes_fmba.csv'
+            'figures/cooccured_epitopes_fmba.pdf'
     script: 'source/alpha_beta_paired_clones_search.py'
 
 rule create_hla_desc_files:
@@ -213,6 +215,28 @@ rule figure_2:
             'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
             'data/covid_fmba_TRB_pgen.csv',
             'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
+            'data/covid_fmba_TRA_pgen.csv',
+            'data/run_to_number_of_clones_fmba_TRA.csv',
+            'data/TRA_TRB_cooccurence_matrix_cooccurence_85.csv',
+            'data/alpha_beta_paired_epitopes.csv',
+            'publication-notebooks/fig2.ipynb'
+    output: 'figures/fig2.png'
+    shell: '''
+            jupyter nbconvert --to python publication-notebooks/fig2.ipynb
+            python publication-notebooks/fig2.py
+            rm publication-notebooks/fig2.py
+           '''
+
+rule figure_3:
+    threads: 1
+    input: 'data/hla_sign_clone_matrix/hla_covid_clonotype_matrix_500k_top_1_mismatch_hla_DRB1*16.csv',
+            'data/desc_fmba_not_nan_hla.csv',
+            'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
+            'data/covid_fmba_TRB_pgen.csv',
             'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv',
             'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
             'data/covid_fmba_TRA_pgen.csv',

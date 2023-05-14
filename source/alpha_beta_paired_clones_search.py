@@ -90,11 +90,11 @@ def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitope
     for beta_cluster in res_beta.cluster.unique():
         for alpha_cluster in res_alpha.cluster.unique():
             if len(cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]) > 0:
-                for epi in cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]:
+                for e in cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]:
                     alpha_index.append(alpha_cluster)
                     beta_index.append(beta_cluster)
-                    epi.append(epi)
-                    species.append(vdjdb[vdjdb['antigen.epitope'] == epi].species[0])
+                    epi.append(e)
+                    species.append(list(vdjdb[vdjdb['antigen.epitope'] == e].species)[0])
 
     df = pd.DataFrame(data={'alpha_cluster': alpha_index, 'beta_cluster': beta_index,
                             'epitope': epi, 'species': species})

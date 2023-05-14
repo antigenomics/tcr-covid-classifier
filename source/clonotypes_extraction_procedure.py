@@ -32,7 +32,7 @@ def process_all_files(usage_matrix_path, save_path, method='top', count_of_clone
         top = top.sample(n=count_of_clones, random_state=42)
 
     elif method == 'unique-occurence':
-        top = top[top['count'] > count_of_clones]
+        top = top[top['count'] >= count_of_clones]
     top.to_csv(save_path, index=False)
 
 
