@@ -40,7 +40,7 @@ rule clones_extraction_fmba_beta:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRB.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
-    params: n_clones=6,
+    params: n_clones=7,
             platform='fmba',
             sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRB.csv'
@@ -126,7 +126,7 @@ rule clones_extraction_fmba_alpha:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRA.csv', f'/projects/fmba_covid/1_data_links/downsampled_alpha'
-    params: n_clones=6,
+    params: n_clones=7,
             platform='fmba',
             sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRA.csv'
