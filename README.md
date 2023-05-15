@@ -33,4 +33,4 @@ You need to run the following command from the root directory:
 snakemake --cores 48 
 ```
 You can specify less cores, but the code would be requiring more time to execute.
-Using 16gb RAM and 48 CPUs the code is expected to run for ~12 hours.  
+Using 16gb RAM and 48 CPUs the code is expected to run for ~2 hours.  
