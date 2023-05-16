@@ -61,7 +61,7 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
     return significant_clones
 
 
-def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_path=None, n=500000, platform=None,
+def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_path=None, n=5000000, platform=None,
                             fisher=True, marker_column='covid', marker_column_success_sign='covid', alternative='greater'):
     desc = pd.read_csv(desc_path).drop(columns=['Unnamed: 0'])
     if platform is not None:
@@ -89,7 +89,7 @@ def covid_test_allele_based(allele):
         f'data/hla_clonotype_matrix/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{allele}.csv'),
                             desc_path=f'data/hla_desc/fmba_desc_hla_{allele}.csv',
                             save_path=f'data/hla_covid_results/covid_clones_500k_top_1_mismatch_binom_hla_{allele}.csv',
-                            fisher=False)
+                            fisher=True)
 
 
 def covid_test_for_beta_chain_adaptive(n=500000):

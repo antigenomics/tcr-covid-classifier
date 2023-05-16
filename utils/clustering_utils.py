@@ -79,18 +79,8 @@ def check_db_epitopes_cdr3(db, cdr3, dist=1):
     return db[db.cdr3.apply(lambda x: check_distance(x, cdr3, dist))][['antigen.epitope', 'antigen.species']]
 
 
-# def get_alpha_clones_for_beta(beta_clone):
-#     return pairing_res[pairing_res.beta_clone == beta_clone].cdr3aa
-
-
 def get_epitopes_for_beta_clone(vdjdb, beta_cdr3, dist=1):
     beta_epitopes = check_db_epitopes_cdr3(vdjdb, beta_cdr3, dist=dist)
-    # alpha_paired = get_alpha_clones_for_beta(beta_cdr3)
-    # alpha_epitopes = []
-    # for alpha_cdr3 in alpha_paired:
-    #     alpha_epitopes.append(check_db_epitopes_cdr3(vdjdb, alpha_cdr3, dist=dist))
-    # alpha_epitopes = pd.concat(alpha_epitopes).drop_duplicates()
-    #     print(beta_epitopes.merge(alpha_epitopes))
     return beta_epitopes.drop_duplicates()  # .merge(alpha_epitopes).drop_duplicates()
 
 
@@ -141,7 +131,7 @@ def get_significant_epitopes_to_clone_mapping(vdjdb, res_beta, cluster, signific
 
 def get_most_frequent_cluster_by_vdjdb_occurence(vdjdb, cluster_epitopes, gene='TRB'):
     cluster_epitopes['cluster_epitopes_freq'] = cluster_epitopes.apply(lambda x: x['count'] / vdjdb[
-        (vdjdb.gene == 'TRB') & (vdjdb['antigen.epitope'] == x['antigen.epitope'])].cdr3.nunique(), axis=1)
+        (vdjdb.gene == gene) & (vdjdb['antigen.epitope'] == x['antigen.epitope'])].cdr3.nunique(), axis=1)
     return cluster_epitopes.sort_values(by='cluster_epitopes_freq', ascending=False).loc[0, :]
 
 

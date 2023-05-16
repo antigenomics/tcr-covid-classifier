@@ -1,5 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
+import os
 
 
 def process_all_files(usage_matrix_path, save_path, method='top', count_of_clones=500000,
@@ -36,17 +37,20 @@ def process_all_files(usage_matrix_path, save_path, method='top', count_of_clone
     top.to_csv(save_path, index=False)
 
 
-def clonotype_extraction_for_allele():
-    hla_keys = pd.read_csv('../data/hla_keys.csv')['0']
+def clonotype_extraction_for_allele(path_to_hla_desc, um_path, top_clonotypes_path, raw_data_folder, hla_keys=None):
+    if hla_keys is None:
+        hla_keys = pd.read_csv('data/hla_keys.csv')['0']
     print(hla_keys)
+    os.mkdir(top_clonotypes_path)
     for hla in hla_keys:
         print(f'Started processing {hla}')
-        hla_desc = pd.read_csv(f'../data/hla_desc/fmba_desc_hla_{hla}.csv')
+        hla_desc = pd.read_csv(f'{path_to_hla_desc}/fmba_desc_hla_{hla}.csv')
         runs_to_process = list(hla_desc.run)
-        process_all_files(usage_matrix_path='../data/standardized_log_exp_usage_matrix_joint_new.csv',
-                          save_path=f'../data/hla_top_clonotypes/most_used_500k_clonotypes_top_fmba_hla_{hla}.csv',
+        process_all_files(usage_matrix_path=um_path,
+                          save_path=f'{top_clonotypes_path}/most_used_clonotypes_fmba_hla_{hla}.csv',
                           method='top',
                           count_of_clones=500000,
+                          raw_data_folder=raw_data_folder,
                           runs_to_process=runs_to_process)
 
 
@@ -117,3 +121,9 @@ if __name__ == "__main__":
                                                      method=snakemake.params.sampling_method,
                                                      n_clones=snakemake.params.n_clones,
                                                      resampled_samples_path=snakemake.input[1])
+        if snakemake.params.platform == 'fmba-allele':
+            clonotype_extraction_for_allele(path_to_hla_desc=snakemake.input[0],
+                                            um_path=snakemake.input[1],
+                                            raw_data_folder=snakemake.input[2],
+                                            top_clonotypes_path=snakemake.output[0],
+                                            hla_keys=snakemake.params.hla_to_consider)
