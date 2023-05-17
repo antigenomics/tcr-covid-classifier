@@ -117,7 +117,7 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
                 res_beta[res_beta.cluster == beta_cluster].cdr3,
                 alpha_matrix,
                 beta_matrix,
-                pairing_param=0.85)
+                pairing_param=0.75)
 
     beta_epitopes_dist_1 = {}
     for cluster in tqdm(res_beta.cluster.unique()):

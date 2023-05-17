@@ -40,7 +40,7 @@ rule clones_extraction_fmba_beta:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRB.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
-    params: n_clones=3,
+    params: n_clones=2,
             platform='fmba',
             sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRB.csv'
@@ -68,8 +68,7 @@ rule fisher_test_fmba_TRB:
     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
            'data/run_to_number_of_clones_fmba_TRB.csv',
            'data/clone_matrix_fmba_TRB_top_500k.csv'
-    params: n_clones=500000,
-            platform='fmba'
+    params: platform='fmba'
     output: 'data/covid_significant_clones_fmba_TRB_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
@@ -89,7 +88,7 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
     input: 'data/clone_matrix_fmba_TRB_top_500k.csv',
             'data/covid_fmba_TRB_pgen.csv',
             'data/run_to_number_of_clones_fmba_TRB.csv'
-    params: pgen_threshold=3e-8, preal_threshold=1.2e-6
+    params: pgen_threshold=1e-9, preal_threshold=1e-6
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
     script: 'source/leaks_deletion.py'
 
@@ -126,7 +125,7 @@ rule clones_extraction_fmba_alpha:
     threads: 2
     resources: mem="10GB"
     input: 'data/standardized_usage_matrix_fmba_TRA.csv', f'/projects/fmba_covid/1_data_links/downsampled_alpha'
-    params: n_clones=5,
+    params: n_clones=2,
             platform='fmba',
             sampling_method='unique-occurence'
     output: 'data/most_used_500k_fmba_TRA.csv'
@@ -154,8 +153,7 @@ rule fisher_test_fmba_TRA:
     input: 'data/standardized_usage_matrix_fmba_TRA.csv',
            'data/run_to_number_of_clones_fmba_TRA.csv',
            'data/clone_matrix_fmba_TRA_top_500k.csv'
-    params: n_clones=500000,
-            platform='fmba'
+    params: platform='fmba'
     output: 'data/covid_significant_clones_fmba_TRA_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
@@ -175,7 +173,7 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRA:
     input: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv',
             'data/covid_fmba_TRA_pgen.csv',
             'data/run_to_number_of_clones_fmba_TRA.csv'
-    params: pgen_threshold=1e-8, preal_threshold=0.5e-5
+    params: pgen_threshold=1e-9, preal_threshold=1e-6
     output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
     script: 'source/leaks_deletion.py'
 
@@ -261,7 +259,8 @@ rule figure_4:
             'data/hla_keys.csv',
             'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
             'data/clone_matrix_covid_fmba_TRA_metaclone.csv',
-            'data/hla_desc'
+            'data/hla_desc',
+            'publication-notebooks/fig4.ipynb'
     output: 'figures/fig4.png'
     shell: '''
             jupyter nbconvert --to python publication-notebooks/fig4.ipynb

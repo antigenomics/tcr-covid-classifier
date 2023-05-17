@@ -61,12 +61,13 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
     return significant_clones
 
 
-def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_path=None, n=500000, platform=None,
+def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_path=None, n=None, platform=None,
                             fisher=True, marker_column='covid', marker_column_success_sign='covid', alternative='greater'):
     desc = pd.read_csv(desc_path).drop(columns=['Unnamed: 0'])
     if platform is not None:
         desc = desc[desc.platform == platform]
-    clonotype_matrix = clonotype_matrix.head(n)
+    if n is not None:
+        clonotype_matrix = clonotype_matrix.head(n)
     if 'cdr3aa' in clonotype_matrix.columns:
         clonotype_matrix = clonotype_matrix.drop_duplicates().set_index('cdr3aa').T.reset_index().rename(
             columns={'index': 'run'})
@@ -142,7 +143,7 @@ def test_for_all_hla_alleles():
         covid_test_allele_based(hla)
 
 
-def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path, n_clones):
+def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path):
     global run_to_number_of_clonotypes
     run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
 
@@ -151,7 +152,6 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
         desc_path=um_path,
         save_path=save_path,
         pval_save_path=pval_save_path,
-        n=n_clones,
         fisher=True)
 
 
@@ -162,5 +162,5 @@ if __name__ == "__main__":
                                 clonotype_matrix_path=snakemake.input[2],
                                 um_path=snakemake.input[0],
                                 save_path=snakemake.output[0],
-                                pval_save_path=snakemake.output[1],
-                                n_clones=snakemake.params.n_clones)
+                                pval_save_path=snakemake.output[1]
+                                )
