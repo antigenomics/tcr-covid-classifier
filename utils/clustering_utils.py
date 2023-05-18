@@ -1,11 +1,14 @@
+import random
+
 import igraph as ig
 import numpy as np
 import pandas as pd
 from multipy.fwer import hochberg
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import fisher_exact
-import random
+
 random.seed(42)
+
 
 def hdist(s1, s2):
     if len(s1) != len(s2):
@@ -108,7 +111,7 @@ def get_count_of_antigen_associated_clones(vdjdb, antigen, chain='TRB'):
     return len(vdjdb[(vdjdb.gene == chain) & (vdjdb['antigen.epitope'] == antigen)]), len(vdjdb[(vdjdb.gene == chain)])
 
 
-def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gene='TRB'):
+def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gene='TRB', alpha=0.05):
     epitopes = get_epitopes_for_cluster(vdjdb, res_beta, cluster, dist)
     trb_in_vdjdb = len(vdjdb[vdjdb.gene.str.contains(gene)]['antigen.epitope'])
     pvals = []
@@ -119,9 +122,9 @@ def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gen
         y = count
         pvals.append(fisher_exact([[x, trb_in_vdjdb - x], [y, len(res_beta) - y]], alternative='less')[1])
     if len(pvals) > 1:
-        sign = hochberg(pvals, alpha=1)
+        sign = hochberg(pvals, alpha=alpha)
     else:
-        sign = [pvals[0] < 1]
+        sign = [pvals[0] < alpha]
     return epitopes[sign] if len(epitopes[sign]) > 0 else None
 
 
@@ -132,9 +135,11 @@ def get_epitope_for_clone(cdr3, vdjdb):
     return None
 
 
-def get_significant_epitopes_to_clone_mapping(vdjdb, res_beta, cluster, significant_epitopes_for_cluster, dist=1, gene='TRB'):
+def get_significant_epitopes_to_clone_mapping(vdjdb, res_beta, cluster, significant_epitopes_for_cluster, dist=1,
+                                              gene='TRB'):
     result = res_beta[res_beta.cluster == cluster]
-    gene_vdjdb = vdjdb[(vdjdb.gene.str.contains(gene)) & (vdjdb['antigen.epitope'].isin(significant_epitopes_for_cluster))]
+    gene_vdjdb = vdjdb[
+        (vdjdb.gene.str.contains(gene)) & (vdjdb['antigen.epitope'].isin(significant_epitopes_for_cluster))]
     result['epitope'] = result.cdr3.apply(lambda x: get_epitope_for_clone(x, gene_vdjdb))
     return result
 

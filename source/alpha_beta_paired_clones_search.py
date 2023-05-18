@@ -94,10 +94,10 @@ def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitope
                     alpha_index.append(alpha_cluster)
                     beta_index.append(beta_cluster)
                     epi.append(e)
-                    species.append(list(vdjdb[vdjdb['antigen.epitope'] == e].species)[0])
+                    species.append(list(vdjdb[vdjdb['antigen.epitope'] == e]['antigen.species'])[0])
 
     df = pd.DataFrame(data={'alpha_cluster': alpha_index, 'beta_cluster': beta_index,
-                            'epitope': epi, 'species': species})
+                            'epitope': epi, 'antigen_species': species})
     plot_pandas_df_into_png(df, save_path)
 
 
@@ -117,7 +117,7 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
                 res_beta[res_beta.cluster == beta_cluster].cdr3,
                 alpha_matrix,
                 beta_matrix,
-                pairing_param=0.75)
+                pairing_param=0.6)
 
     beta_epitopes_dist_1 = {}
     for cluster in tqdm(res_beta.cluster.unique()):
