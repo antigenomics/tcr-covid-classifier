@@ -412,19 +412,19 @@ def plot_cooccurence_heatmap_with_epitopes_labeling(plotting_df, annot_df, ax=No
 
 
 def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df, fig=None, ax=None,
-                                                           epitopes_count_threshold=0):
+                                                           epitopes_count_threshold=0, corr_threshold=0.1):
     if ax is None:
         if plotting_df.shape[0] > plotting_df.shape[1]:
             fig, ax = plt.subplots(figsize=(2.5, 20))
         else:
             fig, ax = plt.subplots(figsize=(20, 2.5))
 
-    selected_cols = plotting_df.columns[(plotting_df.sum() > 0.1) & (annot_df.sum() >= epitopes_count_threshold)]
+    selected_cols = plotting_df.columns[(plotting_df.sum() > corr_threshold) & (annot_df.sum() >= epitopes_count_threshold)]
     data_to_plot = \
-    plotting_df.loc[(plotting_df.sum(axis=1) > 0.1) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
+    plotting_df.loc[(plotting_df.sum(axis=1) > corr_threshold) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
         selected_cols]
     bubble_sizes = \
-    annot_df.loc[(plotting_df.sum(axis=1) > 0.1) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
+    annot_df.loc[(plotting_df.sum(axis=1) > corr_threshold) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
         selected_cols]
 
     ylabels = np.array([x for x in data_to_plot.index])
