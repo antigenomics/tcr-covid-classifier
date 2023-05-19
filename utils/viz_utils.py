@@ -412,7 +412,7 @@ def plot_cooccurence_heatmap_with_epitopes_labeling(plotting_df, annot_df, ax=No
 
 
 def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df, fig=None, ax=None,
-                                                           epitopes_count_threshold=0, corr_threshold=0.1):
+                                                           epitopes_count_threshold=0, corr_threshold=0.1, legend_x=1.05):
     if ax is None:
         if plotting_df.shape[0] > plotting_df.shape[1]:
             fig, ax = plt.subplots(figsize=(2.5, 20))
@@ -448,7 +448,7 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
     ax.grid(which='minor')
 
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='2%', pad=0.75)
+    cax = divider.append_axes('right', size='2%', pad=1.75)
     cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
     # cbar.set_label('fraction of α-β co-occured pairs')
     cax.yaxis.set_ticks_position('left')
@@ -463,14 +463,15 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
     line3 = plt.Line2D([], [], color="white", marker='o', markersize=14, markerfacecolor="slategray")
     line4 = plt.Line2D([], [], color="white", marker='o', markersize=18, markerfacecolor="slategray")
     line5 = plt.Line2D([], [], color="white", marker='o', markersize=21, markerfacecolor="slategray")
-    ax.legend((line1, line2, line3, line4, line5),
-              ('0', '1', '2', '3', '4'),
+    ax.legend((line3, line5),
+              ('0', '1'),
               numpoints=1,
               loc=1,
               title='# epitopes',
               labelspacing=1.5,
-              bbox_to_anchor=(1.12, 1.05),
+              bbox_to_anchor=(legend_x, 1.15),
               frameon=False)
+    print('рррh')
     # sns.move_legend(ax, "upper right", bbox_to_anchor=(1.1, 1.1))
 
 

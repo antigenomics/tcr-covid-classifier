@@ -1,2 +1,4 @@
 ﻿.idea
 */.ipynb_checkpoints
+data/hla_associated_clones/.snakemake_timestamp
+*.snakemake_timestamp
