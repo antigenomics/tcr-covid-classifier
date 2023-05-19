@@ -90,7 +90,7 @@ def covid_test_allele_based(allele):
         f'data/hla_clonotype_matrix/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{allele}.csv'),
                             desc_path=f'data/hla_desc/fmba_desc_hla_{allele}.csv',
                             save_path=f'data/hla_covid_results/covid_clones_500k_top_1_mismatch_binom_hla_{allele}.csv',
-                            fisher=False)
+                            fisher=True)
 
 
 def covid_test_for_beta_chain_adaptive(n=500000):

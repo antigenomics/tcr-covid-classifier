@@ -1,23 +1,23 @@
 import math
+from math import sqrt, pi
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.collections import PatchCollection
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.stats import mannwhitneyu
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer
-from math import sqrt, sin, cos, asin, pi
-from utils.data_utils import prepare_clonotype_matrix, prepare_run_column
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.collections import PatchCollection
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from utils.clustering_utils import get_most_frequent_cluster_by_vdjdb_occurence
-from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from utils.data_utils import prepare_clonotype_matrix, prepare_run_column
 
 
 def plot_usage_matrix_pca(usage_matrix: pd.DataFrame, method=PCA, n_components=2, target=None, plot_gradient=False,
@@ -209,7 +209,8 @@ def plot_clustermap_axes_based(usage_matrix, genes=['TRBV28', 'TRBV4-3', 'TRBV6-
     Z = linkage(usage_matrix[genes], 'complete')
     labels = fcluster(Z, 0.00001, criterion='distance')
     labels_order = np.argsort(labels)
-    sns.heatmap(usage_matrix.loc[labels_order, :][genes].T, ax=ax, cbar_kws={'label': 'V gene usage in a sample'}, cmap='vlag')
+    sns.heatmap(usage_matrix.loc[labels_order, :][genes].T, ax=ax, cbar_kws={'label': 'V gene usage in a sample'},
+                cmap='vlag')
     ax.get_xaxis().set_visible(False)
 
 
@@ -405,7 +406,7 @@ def plot_cooccurence_heatmap_with_epitopes_labeling(plotting_df, annot_df, ax=No
         cmap=sns.color_palette("coolwarm", as_cmap=True),
         annot=annot_df.loc[(plotting_df.sum(axis=1) > 0.1) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
             selected_cols].applymap(lambda x: '.' if x == 0 else str(x)), fmt=''
-        )
+    )
     ax.set_xlabel('α cluster index')
     ax.set_ylabel('β cluster index')
     # ax.set_title('α vs β cluster co-occurence matrix, co-occurence threshold=85%')
@@ -513,7 +514,8 @@ def create_epitope_name(epitope, vdjdb):
 def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
                                                     color_by='cluster',
                                                     cluster_size_threshold=0, dist_to_center=500,
-                                                    center_diff_threshold=50, gene='TRB', ax=None, global_zero_based=True):
+                                                    center_diff_threshold=50, gene='TRB', ax=None,
+                                                    global_zero_based=True):
     if ax is None:
         fig, (ax) = plt.subplots()
     plot_clusters_of_clonotypes(res, color_by=color_by, ax=ax)
@@ -560,7 +562,7 @@ def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
                     else:
                         ax.annotate(create_epitope_name(epitope, vdjdb),
                                     xy=(cluster_center_x, cluster_center_y),
-                                    xytext=(cluster_center_x+2 * dist_to_center, cluster_center_y-dist_to_center),
+                                    xytext=(cluster_center_x + 2 * dist_to_center, cluster_center_y - dist_to_center),
                                     arrowprops={
                                         'arrowstyle': '->',
                                     })
@@ -598,10 +600,12 @@ def volcano_plot(clonotype_matrix_path, desc_path, pvals, healthy_col='covid', h
     sns.scatterplot(data=df, x='log_fold_change', y='logp')
 
 
-def plot_volcano(data, pval_threshold, fold_change_threshold, pval_column='pval', fold_change_column='log_fold_change', ax=None):
+def plot_volcano(data, pval_threshold, fold_change_threshold, pval_column='pval', fold_change_column='log_fold_change',
+                 ax=None):
     if ax is None:
         fig, ax = plt.subplots()
-    data['selected clone'] = data.apply(lambda row: True if row[fold_change_column] > 2.5 and row[pval_column] < pval_threshold else False, axis=1)
+    data['selected clone'] = data.apply(
+        lambda row: True if row[fold_change_column] > 2.5 and row[pval_column] < pval_threshold else False, axis=1)
     sns.scatterplot(data=data, x=fold_change_column, y=pval_column, hue='selected clone', ax=ax, s=2)
     ax.axvline(x=fold_change_threshold, linestyle='dashed', color='grey')
     ax.axhline(y=pval_threshold, linestyle='dashed', color='grey')

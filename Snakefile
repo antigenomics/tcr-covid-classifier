@@ -91,8 +91,50 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
     params: pgen_threshold=1e-9, preal_threshold=1e-6
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
     script: 'source/leaks_deletion.py'
+########################################################################################################################
+rule create_hla_desc_files:
+    input: 'data/desc_fmba_not_nan_hla.csv'
+    output: 'data/hla_keys.csv', directory('data/hla_desc')
+    script: 'source/create_hla_description_files.py'
 
-# rule hla_specific_
+rule hla_specific_clones_extraction_TRB:
+    threads: 2
+    resources: mem="10GB"
+    input: 'data/hla_desc', 'data/standardized_usage_matrix_fmba_TRB.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
+    params: platform='fmba-allele',
+            hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    output: directory('data/hla_most_used_clones')
+    script: 'source/clonotypes_extraction_procedure.py'
+
+rule hla_clone_matrix_creation_TRB:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='fmba-allele',
+            hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+           'data/hla_most_used_clones',
+            f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
+    output: directory('data/hla_clonotype_matrices')
+    script: 'source/clonotypes_matrix_creation.py'
+
+rule hla_associatiated_TRB_clones_search:
+    threads: 40
+    params: hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    input: 'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/hla_desc',
+            'data/hla_clonotype_matrices',
+    output: directory('data/hla_associated_clones')
+    script: 'source/tests_analysis/hla_test_new.py'
+
+rule hla_based_covid_associated_TRB_clones_search:
+    threads: 40
+    params: hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    input: 'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/hla_desc',
+            'data/hla_clonotype_matrices',
+    output: directory('data/hla_associated_clones')
+    script: 'source/tests_analysis/hla_test_new.py'
+
 
 ########################################################################################################################
 
@@ -185,11 +227,6 @@ rule TRA_TRB_pairing_analysis:
             'data/clone_matrix_covid_fmba_TRA_metaclone.csv', 'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
             'figures/cooccured_epitopes_fmba.pdf'
     script: 'source/alpha_beta_paired_clones_search.py'
-
-rule create_hla_desc_files:
-    input: 'data/desc_fmba_not_nan_hla.csv'
-    output: 'data/hla_keys.csv', directory('data/hla_desc')
-    script: 'source/create_hla_description_files.py'
 
 ######################################################################################################################
 
