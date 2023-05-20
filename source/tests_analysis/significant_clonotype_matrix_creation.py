@@ -72,7 +72,28 @@ def sign_clone_matrices_for_all_alleles_covid_based():
 
 if __name__ == "__main__":
     if 'snakemake' in globals():
-        create_significant_clonotype_matrix(clonotype_matrix_path=snakemake.input[0],
-                                            significant_clones_path=snakemake.input[1],
-                                            save_path=snakemake.output[0])
+        if snakemake.params.platform == 'fmba':
+            create_significant_clonotype_matrix(clonotype_matrix_path=snakemake.input[0],
+                                                significant_clones_path=snakemake.input[1],
+                                                save_path=snakemake.output[0])
+        if snakemake.params.platform == 'fmba-allele':
+            hla_keys = snakemake.params.hla_to_consider
+            print(hla_keys)
+            import os
+            if not os.path.exists(snakemake.output[0]):
+                os.mkdir(snakemake.output[0])
+            for hla in hla_keys:
+                joint_clones = pd.read_csv(
+                    f'{snakemake.input[0]}/hla_associated_clones_500k_top_1_mismatch_hla_{hla}.csv').merge(
+                    pd.read_csv(
+                        f'{snakemake.input[1]}/hla_covid_associated_clones_500k_top_1_mismatch_hla_{hla}.csv'
+                    )
+                ).to_csv(
+                    f'{snakemake.output[0]}/hla_covid_joint_sign_clones_{hla}.csv', index=False
+                )
 
+                create_significant_clonotype_matrix(
+                    clonotype_matrix_path=f'{snakemake.input[2]}/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{hla}.csv',
+                    significant_clones_path=f'{snakemake.output[0]}/hla_covid_joint_sign_clones_{hla}.csv',
+                    save_path=f'{snakemake.output[0]}/hla_covid_clonotype_matrix_500k_top_1_mismatch_hla_{hla}.csv'
+                )

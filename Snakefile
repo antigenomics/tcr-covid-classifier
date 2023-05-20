@@ -76,6 +76,7 @@ rule fisher_test_fmba_TRB:
 rule fisher_significant_clone_matrix_fmba_TRB:
     input:  'data/clone_matrix_fmba_TRB_top_500k.csv',
            'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+    params: platform='fmba'
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
@@ -128,13 +129,22 @@ rule hla_associatiated_TRB_clones_search:
 
 rule hla_based_covid_associated_TRB_clones_search:
     threads: 40
-    params: hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    params: hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16'],
+            platform='fmba-allele'
     input: 'data/run_to_number_of_clones_fmba_TRB.csv',
             'data/hla_desc',
             'data/hla_clonotype_matrices',
-    output: directory('data/hla_associated_clones')
-    script: 'source/tests_analysis/hla_test_new.py'
+    output: directory('data/hla_covid_associated_clones')
+    script: 'source/tests_analysis/covid_test_250k.py'
 
+rule hla_covid_significant_usage_matrix_creation_TRB:
+    input:  'data/hla_associated_clones',
+            'data/hla_covid_associated_clones',
+            'data/hla_clonotype_matrices',
+    params: platform='fmba-allele',
+            hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16']
+    output: directory('data/hla_sign_clone_matrix')
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
 ########################################################################################################################
 
@@ -203,6 +213,7 @@ rule fisher_test_fmba_TRA:
 rule fisher_significant_clone_matrix_fmba_TRA:
     input: 'data/clone_matrix_fmba_TRA_top_500k.csv',
            'data/covid_significant_clones_fmba_TRA_top_500k.csv'
+    params: platform='fmba'
     output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
@@ -266,24 +277,15 @@ rule figure_2:
 
 rule figure_3:
     threads: 1
-    input: 'data/hla_sign_clone_matrix/hla_covid_clonotype_matrix_500k_top_1_mismatch_hla_DRB1*16.csv',
+    input: 'data/hla_sign_clone_matrix',
             'data/desc_fmba_not_nan_hla.csv',
             'data/run_to_number_of_clones_fmba_TRB.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
-            'data/covid_fmba_TRB_pgen.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
-            'data/covid_fmba_TRA_pgen.csv',
-            'data/run_to_number_of_clones_fmba_TRA.csv',
-            'data/TRA_TRB_cooccurence_matrix_cooccurence_85.csv',
-            'data/alpha_beta_paired_epitopes.csv',
-            'publication-notebooks/fig2.ipynb'
-    output: 'figures/fig2.png'
+            'publication-notebooks/fig3.ipynb'
+    output: 'figures/fig3.png'
     shell: '''
-            jupyter nbconvert --to python publication-notebooks/fig2.ipynb
-            python publication-notebooks/fig2.py
-            rm publication-notebooks/fig2.py
+            jupyter nbconvert --to python publication-notebooks/fig3.ipynb
+            python publication-notebooks/fig3.py
+            rm publication-notebooks/fig3.py
            '''
 
 rule figure_4:

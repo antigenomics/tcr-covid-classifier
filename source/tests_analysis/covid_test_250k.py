@@ -85,11 +85,10 @@ def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_pa
     pd.DataFrame(data={'clone': significant_clones}).to_csv(save_path, index=False)
 
 
-def covid_test_allele_based(allele):
-    covid_test_matrix_based(clonotype_matrix=pd.read_csv(
-        f'data/hla_clonotype_matrix/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{allele}.csv'),
-                            desc_path=f'data/hla_desc/fmba_desc_hla_{allele}.csv',
-                            save_path=f'data/hla_covid_results/covid_clones_500k_top_1_mismatch_binom_hla_{allele}.csv',
+def covid_test_allele_based(save_path, cm, desc_path):
+    covid_test_matrix_based(clonotype_matrix=cm,
+                            desc_path=desc_path,
+                            save_path=save_path,
                             fisher=True)
 
 
@@ -137,12 +136,6 @@ def covid_test_for_alpha_chain(n=500000):
         fisher=True)
 
 
-def test_for_all_hla_alleles():
-    hla_keys = pd.read_csv('data/hla_keys.csv')['0']
-    for hla in list(hla_keys):
-        covid_test_allele_based(hla)
-
-
 def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path):
     global run_to_number_of_clonotypes
     run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
@@ -155,6 +148,19 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
         fisher=True)
 
 
+def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_folder_path, save_path, hla_keys=None):
+    global run_to_number_of_clonotypes
+    run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
+
+    if hla_keys is None:
+        hla_keys = pd.read_csv('data/hla_keys.csv')['0']
+    for hla in list(hla_keys):
+        print(f'started processing {hla}')
+        cm = pd.read_csv(f'{cm_folder_path}/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{hla}.csv')
+        desc_path = f'{desc_folder_path}/fmba_desc_hla_{hla}.csv'
+        covid_test_allele_based(save_path + f'/hla_covid_associated_clones_500k_top_1_mismatch_hla_{hla}.csv', cm, desc_path)
+
+
 if __name__ == "__main__":
     if 'snakemake' in globals():
         if snakemake.params.platform == 'fmba':
@@ -164,3 +170,13 @@ if __name__ == "__main__":
                                 save_path=snakemake.output[0],
                                 pval_save_path=snakemake.output[1]
                                 )
+        if snakemake.params.platform == 'fmba-allele':
+            hla_keys = snakemake.params.hla_to_consider
+            print(hla_keys)
+            if not os.path.exists(snakemake.output[0]):
+                os.mkdir(snakemake.output[0])
+            test_for_all_hla_alleles(hla_keys=hla_keys,
+                                     run_to_number_of_clones_path=snakemake.input[0],
+                                     cm_folder_path=snakemake.input[2],
+                                     desc_folder_path=snakemake.input[1],
+                                     save_path=snakemake.output[0])

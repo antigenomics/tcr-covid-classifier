@@ -25,6 +25,7 @@ We use OLGA software for TCR generation probability calculations.
 1. `git clone https://github.com/antigenomics/tcr-covid-classifier.git`
 2. `conda env create -f environment.yml`
 3. `conda activate tcr-classifier`
+4. `pip install logomaker`
 
 ### Run the whole pipeline
 The code is organized into a snakemake pipeline.
