@@ -121,6 +121,12 @@ if __name__ == "__main__":
                                                      method=snakemake.params.sampling_method,
                                                      n_clones=snakemake.params.n_clones,
                                                      resampled_samples_path=snakemake.input[1])
+        if snakemake.params.platform == 'adaptive':
+            clonotypes_extraction_procedure_for_fmba(um_path=snakemake.input[0],
+                                                     save_path=snakemake.output[0],
+                                                     method=snakemake.params.sampling_method,
+                                                     n_clones=snakemake.params.n_clones,
+                                                     resampled_samples_path=snakemake.input[1])
         if snakemake.params.platform == 'fmba-allele':
             clonotype_extraction_for_allele(path_to_hla_desc=snakemake.input[0],
                                             um_path=snakemake.input[1],

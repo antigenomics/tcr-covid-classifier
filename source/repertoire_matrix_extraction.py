@@ -20,11 +20,13 @@ def process_all_files(all_runs_path, names_mapping, raw_data_path, dataset='fmba
                       functional_seqs_type='all'):
     all_v_genes = set()
     runs = pd.read_csv(all_runs_path)
+    sep='\t'
     if dataset == 'fmba':
+        sep=','
         runs = runs[
             (runs[names_mapping['file_name']].str.contains(chain_to_read))]
     elif dataset == 'adaptive_new':
-        runs[names_mapping['file_name']] = runs[names_mapping['file_name']] + '.tsv.txt'
+        runs[names_mapping['file_name']] = runs[names_mapping['file_name']]
     elif dataset == 'hip_full':
         runs[names_mapping['file_name']] = runs[names_mapping['file_name']].apply(lambda x: x.split('/')[-1])
     repertoires_list = []
@@ -32,7 +34,7 @@ def process_all_files(all_runs_path, names_mapping, raw_data_path, dataset='fmba
     for run, project in tqdm(zip(runs[names_mapping['file_name']], runs[names_mapping['dataset']]), total=len(runs),
                              desc='Extracting v gene usage vectors'):
 
-        data = pd.read_csv(f'{raw_data_path}/{dataset}/{run}')
+        data = pd.read_csv(f'{raw_data_path}/{dataset}/{run}', sep=sep)
         run_repertoire = generate_v_gene_usage_vector(data, functional_seqs_type=functional_seqs_type)
         all_v_genes.update(list(run_repertoire.keys()))
         repertoires_list.append(run_repertoire)
@@ -90,6 +92,28 @@ def run_joint_matrix_creation():
         chain_to_read='TRB'
     )
     pd.concat([fmba, adaptive, hip]).to_csv('../data/usage_matrix_joint_new.csv')
+
+
+def adaptive_hip_matrix_creation(hip_desc_path, adaptive_desc_path, raw_path, save_path):
+    adaptive = process_all_files(
+        all_runs_path=adaptive_desc_path,
+        names_mapping={'file_name': 'file_name',
+                       'covid': 'covid',
+                       'dataset': 'Dataset'},
+        dataset='adaptive_new',
+        chain_to_read='TRB',
+        raw_data_path=raw_path
+    )
+    hip = process_all_files(
+        all_runs_path=hip_desc_path,
+        names_mapping={'file_name': 'file_name',
+                       'covid': 'covid',
+                       'dataset': 'dataset'},
+        dataset='hip_full',
+        chain_to_read='TRB',
+        raw_data_path=raw_path
+    )
+    pd.concat([adaptive, hip]).to_csv(save_path)
 
 
 def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):
@@ -170,6 +194,12 @@ if __name__ == "__main__":
                 run_beta_chain_fmba_matrix_creation(desc_path=snakemake.params.desc_path,
                                                     output_path=snakemake.output[0],
                                                     raw_data_path=snakemake.params.raw_data_path)
+            if snakemake.params.platform == 'adaptive':
+                adaptive_hip_matrix_creation(hip_desc_path=snakemake.params.hip_desc_path,
+                                             adaptive_desc_path=snakemake.params.adaptive_desc_path,
+                                             raw_path=snakemake.params.raw_data_path,
+                                             save_path=snakemake.output[0])
+
         if snakemake.params.gene == 'TRA':
             if snakemake.params.platform == 'fmba':
                 run_alpha_chain_fmba_matrix_creation(desc_path=snakemake.params.desc_path,

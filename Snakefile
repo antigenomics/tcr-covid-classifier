@@ -240,6 +240,158 @@ rule TRA_TRB_pairing_analysis:
     script: 'source/alpha_beta_paired_clones_search.py'
 
 ######################################################################################################################
+rule adaptive_usage_matrix_creation:
+    threads: 1
+    params: hip_desc_path=f'{config["hip_desc"]}',
+            adaptive_desc_path=f'{config["adaptive_desc"]}',
+            raw_data_path=f'{config["all_raw_data_path"]}',
+            gene='TRB',
+            platform='adaptive'
+    output: 'data/usage_matrix_adaptive.csv'
+    script: 'source/repertoire_matrix_extraction.py'
+
+rule adaptive_usage_matrix_standardization:
+    threads: 1
+    input: 'data/usage_matrix_adaptive.csv'
+    params: gene='TRB',
+            platform='adaptive'
+    output: 'data/standardized_usage_matrix_adaptive.csv', 'data/normalized_usage_matrix_adaptive.csv'
+    script: 'source/usage_matrix_preprocessing.py'
+
+rule resampling_adaptive:
+    threads: 40
+    input: 'data/standardized_usage_matrix_adaptive.csv'
+    params: gene='TRB',
+            platform='adaptive'
+    output: directory(f'{config["all_raw_data_path"]}/downsampled_adaptive')
+    script: 'source/downsampling_procedure.py'
+
+rule clones_extraction_adaptive:
+    threads: 2
+    resources: mem="20GB"
+    input: 'data/standardized_usage_matrix_adaptive.csv', f'{config["all_raw_data_path"]}/downsampled_adaptive'
+    params: n_clones=2,
+            platform='adaptive',
+            sampling_method='unique-occurence'
+    output: 'data/most_used_500k_adaptive.csv'
+    script: 'source/clonotypes_extraction_procedure.py'
+
+rule clone_matrix_creation_adaptive:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='adaptive'
+    input: 'data/standardized_usage_matrix_adaptive.csv',
+           f'{config["all_raw_data_path"]}/downsampled_adaptive_TRB',
+           'data/most_used_500k_adaptive.csv'
+    output: 'data/clone_matrix_adaptive_top_500k.csv'
+    script: 'source/clonotypes_matrix_creation.py'
+
+rule create_sample_to_num_of_clones_mapping_adaptive:
+    threads: 40
+    input: 'data/standardized_usage_matrix_adaptive.csv',
+           f'{config["all_raw_data_path"]}/downsampled_adaptive_TRB',
+    output: 'data/run_to_number_of_clones_adaptive.csv'
+    script: 'source/get_sum_clonotypes_per_file.py'
+
+rule fisher_test_adaptive:
+    threads: 40
+    input: 'data/standardized_usage_matrix_adaptive.csv',
+           'data/run_to_number_of_clones_adaptive.csv',
+           'data/clone_matrix_adaptive_top_500k.csv'
+    params: platform='adaptive'
+    output: 'data/covid_significant_clones_adaptive.csv',
+            'data/covid_significant_clone_pvals_adaptive.csv'
+    script: 'source/tests_analysis/covid_test_250k.py'
+
+######################################################################################################################
+
+# rule joint_usage_matrix_creation:
+#     threads: 1
+#     params: desc_path=f'{config["fmba_desc"]}',
+#             raw_data_path=f'{config["all_raw_data_path"]}',
+#             gene='TRB',
+#             platform='fmba'
+#     output: 'data/usage_matrix_fmba_TRB.csv'
+#     script: 'source/repertoire_matrix_extraction.py'
+#
+# rule joint_usage_matrix_standardization:
+#     threads: 1
+#     input: 'data/usage_matrix_fmba_TRB.csv'
+#     params: gene='TRB',
+#             platform='fmba'
+#     output: 'data/standardized_usage_matrix_fmba_TRB.csv', 'data/normalized_usage_matrix_fmba_TRB.csv'
+#     script: 'source/usage_matrix_preprocessing.py'
+#
+# rule resampling_joint:
+#     threads: 40
+#     input: 'data/standardized_usage_matrix_fmba_TRB.csv'
+#     params: gene='TRB',
+#             platform='fmba'
+#     output: directory(f'{config["all_raw_data_path"]}/downsampled_fmba_TRB')
+#     script: 'source/downsampling_procedure.py'
+#
+# rule joint_clonotype_matrix_creation_fmba_based_clones:
+#     threads: 1
+#
+# rule clones_extraction_fmba_beta:
+#     threads: 2
+#     resources: mem="10GB"
+#     input: 'data/standardized_usage_matrix_fmba_TRB.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
+#     params: n_clones=2,
+#             platform='fmba',
+#             sampling_method='unique-occurence'
+#     output: 'data/most_used_500k_fmba_TRB.csv'
+#     script: 'source/clonotypes_extraction_procedure.py'
+#
+# rule clone_matrix_creation_fmba_TRB:
+#     threads: 40
+#     resources: mem="10GB"
+#     params: platform='fmba'
+#     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+#            f'{config["all_raw_data_path"]}/downsampled_fmba_TRB',
+#            'data/most_used_500k_fmba_TRB.csv'
+#     output: 'data/clone_matrix_fmba_TRB_top_500k.csv'
+#     script: 'source/clonotypes_matrix_creation.py'
+#
+# rule create_sample_to_num_of_clones_mapping_fmba_TRB:
+#     threads: 40
+#     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+#            f'{config["all_raw_data_path"]}/downsampled_fmba_TRB',
+#     output: 'data/run_to_number_of_clones_fmba_TRB.csv'
+#     script: 'source/get_sum_clonotypes_per_file.py'
+#
+# rule fisher_test_fmba_TRB:
+#     threads: 40
+#     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+#            'data/run_to_number_of_clones_fmba_TRB.csv',
+#            'data/clone_matrix_fmba_TRB_top_500k.csv'
+#     params: platform='fmba'
+#     output: 'data/covid_significant_clones_fmba_TRB_top_500k.csv',
+#             'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
+#     script: 'source/tests_analysis/covid_test_250k.py'
+#
+# rule fisher_significant_clone_matrix_fmba_TRB:
+#     input:  'data/clone_matrix_fmba_TRB_top_500k.csv',
+#            'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+#     params: platform='fmba'
+#     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv'
+#     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+#
+# rule olga_pgen_generation_fmba_TRB:
+#     input: 'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+#     output: 'data/covid_fmba_TRB_pgen.csv'
+#     shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
+#
+# rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
+#     input: 'data/clone_matrix_fmba_TRB_top_500k.csv',
+#             'data/covid_fmba_TRB_pgen.csv',
+#             'data/run_to_number_of_clones_fmba_TRB.csv'
+#     params: pgen_threshold=1e-9, preal_threshold=1e-6
+#     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
+#     script: 'source/leaks_deletion.py'
+
+
+######################################################################################################################
 
 rule figure_1:
     threads: 1

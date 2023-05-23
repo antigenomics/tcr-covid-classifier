@@ -78,7 +78,15 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save):
 def process_one_file(run):
     run_frequencies = transposed_um[[run]].to_dict()[run]
     freqs_to_use = {x: y for (x, y) in run_frequencies.items() if 'TR' in x}
-    update_counts_for_run(f'{raw_data_path}/{platform}/{run}', freqs_to_use, path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+    if platform == 'fmba':
+        update_counts_for_run(f'{raw_data_path}/{platform}/{run}', freqs_to_use, path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+    else:
+        if 'HIP' in run or 'KECK' in run:
+            update_counts_for_run(f'{raw_data_path}/hip_full/{run}', freqs_to_use,
+                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+        else:
+            update_counts_for_run(f'{raw_data_path}/adaptive_new/{run}', freqs_to_use,
+                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
 
 
 def process_all_files():

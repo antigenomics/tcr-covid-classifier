@@ -1,4 +1,7 @@
 all_raw_data_path: '/projects/fmba_covid/publication'
 fmba_raw_path: '/projects/fmba_covid/publication/fmba'
-adaptive_raw_path: '/projects/fmba_covid/publication/adaptive'
+adaptive_raw_path: '/projects/fmba_covid/publication/adaptive_new'
+hip_raw_path: '/projects/fmba_covid/publication/hip_full'
 fmba_desc: 'data/preprocessed_fmba_metadata.csv'
+hip_desc: 'data/data/hip_full.csv'
+adaptive_desc: 'data/adaptive_new.csv'

@@ -163,7 +163,7 @@ def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_
 
 if __name__ == "__main__":
     if 'snakemake' in globals():
-        if snakemake.params.platform == 'fmba':
+        if snakemake.params.platform == 'fmba' or snakemake.params.platform == 'adaptive':
             covid_test_for_fmba(run_to_number_of_clones_path=snakemake.input[1],
                                 clonotype_matrix_path=snakemake.input[2],
                                 um_path=snakemake.input[0],

@@ -107,12 +107,12 @@ def create_usage_matrices_for_fmba_alpha():
 
 def create_usage_matrices_for_adaptive():
     suffix = 'adaptive'
-    usage_matrix = pd.read_csv(f'../data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0']).dropna(axis=1)
+    usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0']).dropna(axis=1)
     norm_um = prepare_usage_matrix(usage_matrix, annotation_columns=['run', 'project', 'covid'])
-    norm_um.to_csv(f'../data/normalized_usage_matrix_{suffix}.csv')
+    norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(usage_matrix, standardize_method=standardize_usage_matrix_log_exp,
         annotation_columns=['run', 'project', 'covid']).to_csv(
-        f'../data/standardized_log_exp_usage_matrix_by_{suffix}.csv')
+        f'data/standardized_usage_matrix_{suffix}.csv')
 
 
 def create_usage_matrices_for_joint():
@@ -139,6 +139,8 @@ if __name__ == "__main__":
         if snakemake.params.gene == 'TRB':
             if snakemake.params.platform == 'fmba':
                 create_usage_matrices_for_fmba_beta()
+            elif snakemake.params.platform == 'adaptive':
+                create_usage_matrices_for_adaptive()
         if snakemake.params.gene == 'TRA':
             if snakemake.params.platform == 'fmba':
                 create_usage_matrices_for_fmba_alpha()

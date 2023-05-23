@@ -113,6 +113,14 @@ if __name__ == "__main__":
                               mismatch_max=1,
                               raw_data_folder=snakemake.input[1],
                               )
+        if snakemake.params.platform == 'adaptive':
+            um = pd.read_csv(snakemake.input[0]).drop(columns=['Unnamed: 0']).fillna(0)
+            process_all_files(save_path=snakemake.output[0],
+                              most_common_clonotypes=pd.read_csv(snakemake.input[2]),
+                              um=um,
+                              mismatch_max=1,
+                              raw_data_folder=snakemake.input[1],
+                              )
         if snakemake.params.platform == 'fmba-allele':
             create_matrix_for_allele_data(um_path=snakemake.input[0],
                                           top_clonotypes_path=snakemake.input[1],
