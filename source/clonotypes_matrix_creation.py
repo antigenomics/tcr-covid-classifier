@@ -27,51 +27,61 @@ def check(clone1, clone2, mismatch_max=0):
 
 
 def process_one_file(run):
-    run, mismatch_max, most_common_clonotypes, raw_data_folder, i = run
-    cur_data = pd.read_csv(f'{raw_data_folder}/{run}')
-    res = []
-    cur_cdrs = Counter(cur_data['cdr3aa'])
-    length_to_clones = defaultdict(set)
-    for cdr in cur_cdrs:
-        length_to_clones[len(cdr)].add(cdr)
+    run, mismatch_max, most_common_clonotypes, raw_data_folder, index = run
+    try:
+        cur_data = pd.read_csv(f'{raw_data_folder}/{run}')
+        res = []
+        cur_cdrs = Counter(cur_data['cdr3aa'])
+        length_to_clones = defaultdict(set)
+        for cdr in cur_cdrs:
+            length_to_clones[len(cdr)].add(cdr)
 
-    length_to_mismatch_clones = {}
-    mismatch_clone_to_cdr3aa = defaultdict(set)
-    for length, cdr_set in length_to_clones.items():
-        length_to_mismatch_clones[length] = defaultdict(set)
-        for clone in cdr_set:
-            if not clone.isalpha():
-                continue
-            for i in range(len(clone)):
-                mismatch_clone = clone[:i] + 'X' + clone[i + 1:]
-                length_to_mismatch_clones[length][i].add(mismatch_clone)
-                mismatch_clone_to_cdr3aa[mismatch_clone].add(clone)
+        length_to_mismatch_clones = {}
+        mismatch_clone_to_cdr3aa = defaultdict(set)
+        for length, cdr_set in length_to_clones.items():
+            length_to_mismatch_clones[length] = defaultdict(set)
+            for clone in cdr_set:
+                if not clone.isalpha():
+                    continue
+                for i in range(len(clone)):
+                    mismatch_clone = clone[:i] + 'X' + clone[i + 1:]
+                    length_to_mismatch_clones[length][i].add(mismatch_clone)
+                    mismatch_clone_to_cdr3aa[mismatch_clone].add(clone)
 
-    for clone in most_common_clonotypes['cdr3aa']:
-        if len(clone) in length_to_mismatch_clones:
-            mismatch_clones = check_mismatch_clone(clone, length_to_mismatch_clones[len(clone)])
-            cdr3aa_found_clones = set()
-            for mismatch_clone in mismatch_clones:
-                cdr3aa_found_clones.update(mismatch_clone_to_cdr3aa[mismatch_clone])
-            sum_occurences = 0
-            for cdr3_mismatch_clone in cdr3aa_found_clones:
-                if check(clone, cdr3_mismatch_clone, mismatch_max=mismatch_max):
-                    sum_occurences += cur_cdrs[cdr3_mismatch_clone]
+        for clone in most_common_clonotypes['cdr3aa']:
+            if len(clone) in length_to_mismatch_clones:
+                mismatch_clones = check_mismatch_clone(clone, length_to_mismatch_clones[len(clone)])
+                cdr3aa_found_clones = set()
+                for mismatch_clone in mismatch_clones:
+                    cdr3aa_found_clones.update(mismatch_clone_to_cdr3aa[mismatch_clone])
+                sum_occurences = 0
+                for cdr3_mismatch_clone in cdr3aa_found_clones:
+                    if check(clone, cdr3_mismatch_clone, mismatch_max=mismatch_max):
+                        sum_occurences += cur_cdrs[cdr3_mismatch_clone]
 
-            res.append(sum_occurences)
-        else:
-            res.append(0)
-    run_to_presence_of_clonotypes[run] = pd.Series(res)
+                res.append(sum_occurences)
+            else:
+                res.append(0)
+        run_to_presence_of_clonotypes[run] = pd.Series(res)
 
-    if i % 500 == 0:
-        print(f'processed {i} runs')
+    except Exception as e:
+        print(f'error processing {raw_data_folder}/{run}', e)
+        return
+
+    if index % 200 == 0:
+        print(f'processed {index} runs')
 
 
 def process_all_files(save_path, most_common_clonotypes, um, mismatch_max=0, raw_data_folder='downsampled_new'):
     run_to_presence_of_clonotypes['cdr3aa'] = most_common_clonotypes['cdr3aa']
     runs = [(x, mismatch_max, most_common_clonotypes, raw_data_folder, i) for i, x in enumerate(um['run'].tolist())]
+    print('Start processing')
     with Pool(snakemake.threads) as p:
-        p.map(process_one_file, runs)
+        p.map(process_one_file, runs)#, chunksize=10)
+        # p.close()
+        # p.terminate()
+        # p.join()
+    print(run_to_presence_of_clonotypes)
     data = {x: y for x, y in run_to_presence_of_clonotypes.items()}
     pd.DataFrame.from_dict(data=data).to_csv(save_path, index=False)
 

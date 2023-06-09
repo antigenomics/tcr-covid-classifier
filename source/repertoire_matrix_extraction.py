@@ -52,7 +52,7 @@ def process_all_files(all_runs_path, names_mapping, raw_data_path, dataset='fmba
     full_usage_dict['run'] = runs[names_mapping['file_name']]
     full_usage_dict['project'] = runs[names_mapping['dataset']]
     runs[names_mapping['covid']] = runs[names_mapping['covid']].fillna('healthy')
-    full_usage_dict['covid'] = runs[names_mapping['covid']].apply(lambda x: 'covid' if 'COVID' in x else 'healthy')
+    full_usage_dict['covid'] = runs[names_mapping['covid']].apply(lambda x: 'covid' if 'covid' in x.lower() else 'healthy')
     if get_extra_info:
         full_usage_dict['hla'] = runs['HLA-A.2']
         full_usage_dict['number_of_clonotypes'] = runs['clonotypes']

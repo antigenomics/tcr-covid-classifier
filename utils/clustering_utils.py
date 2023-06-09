@@ -137,7 +137,7 @@ def get_significant_epitopes_to_clone_mapping(vdjdb, res_beta, cluster, signific
 def get_most_frequent_cluster_by_vdjdb_occurence(vdjdb, cluster_epitopes, gene='TRB'):
     cluster_epitopes['cluster_epitopes_freq'] = cluster_epitopes.apply(lambda x: x['count'] / vdjdb[
         (vdjdb.gene == gene) & (vdjdb['antigen.epitope'] == x['antigen.epitope'])].cdr3.nunique(), axis=1)
-    return cluster_epitopes.sort_values(by='cluster_epitopes_freq', ascending=False).loc[0, :]
+    return cluster_epitopes.sort_values(by='cluster_epitopes_freq', ascending=False).reset_index(drop=True).loc[0, :]
 
 
 def get_cooccurence_value_for_clusters(alpha_cdrs, beta_cdrs, alpha_matrix, beta_matrix, pairing_param=0.8):
@@ -165,3 +165,49 @@ def plot_clusters_of_clonotypes(clustering_res, color_by='cluster', ax=None):
                     palette=palette, ax=ax)
     sns.scatterplot(clustering_res[clustering_res.cluster_size == 1], x='x', y='y', hue=color_by, palette=['grey'],
                     legend=False, ax=ax)
+
+
+def create_summary_stats_table(clustering_res, cluster_to_epi, cm, vdjdb, test_batch, desc, gene='TRB'):
+    summary = clustering_res[['cluster', 'cluster_size']].drop_duplicates()
+    summary['antigen.epitope'] = summary.cluster.apply(lambda x: get_most_frequent_cluster_by_vdjdb_occurence(
+        vdjdb,
+        cluster_to_epi[x][~cluster_to_epi[x]['antigen.species'].str.contains('apiens')].reset_index(drop=True),
+        gene='TRB')[['antigen.epitope', 'antigen.species']][0]
+                                                       )
+    summary['antigen.species'] = summary.cluster.apply(lambda x: get_most_frequent_cluster_by_vdjdb_occurence(
+        vdjdb,
+        cluster_to_epi[x][~cluster_to_epi[x]['antigen.species'].str.contains('apiens')].reset_index(drop=True),
+        gene=gene)[['antigen.epitope', 'antigen.species']][0]
+                                                       )
+    summary['epitope.num_clones'] = summary.apply(
+        lambda x:
+        cluster_to_epi[x.cluster][cluster_to_epi[x.cluster]['antigen.epitope'] == x['antigen.epitope']]['count'][0],
+        axis=1)
+
+    train_runs = desc[desc.project.str.contains(test_batch)]
+    test_runs = desc[~desc.project.str.contains(test_batch)]
+
+    healthy_train_cm = cm[cm.run.isin(train_runs)].merge(desc[['run']][desc.COVID_status == 'healthy'])
+    healthy_test_cm = cm[cm.run.isin(test_runs)].merge(desc[['run']][desc.COVID_status == 'healthy'])
+    covid_train_cm = cm[cm.run.isin(train_runs)].merge(desc[['run']][desc.COVID_status != 'healthy'])
+    covid_test_cm = cm[cm.run.isin(test_runs)].merge(desc[['run']][desc.COVID_status != 'healthy'])
+
+    train_cm = cm[cm.run.isin(train_runs)]
+    test_cm = cm[cm.run.isin(test_runs)]
+
+    summary['num_samples_with_cluster_train'] = summary.cluster.apply(
+        lambda x: (train_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+    summary['num_samples_with_cluster_train_healthy'] = summary.cluster.apply(
+        lambda x: (healthy_train_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+    summary['num_samples_with_cluster_train_covid'] = summary.cluster.apply(
+        lambda x: (covid_train_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+
+    summary['num_samples_with_cluster_test'] = summary.cluster.apply(
+        lambda x: (test_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+    summary['num_samples_with_cluster_test_healthy'] = summary.cluster.apply(
+        lambda x: (healthy_test_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+    summary['num_samples_with_cluster_test_covid'] = summary.cluster.apply(
+        lambda x: (covid_test_cm[clustering_res[clustering_res.cluster == x].cdr3].sum(axis=1) > 0).sum())
+
+    summary.to_excel(f'figures/clustering_summary_{gene}.xlsx')
+    summary.to_csv(f'figures/clustering_summary_{gene}.csv')

@@ -102,6 +102,7 @@ def prepare_data(run_to_number_of_clones_path,
                  use_hla_clones=True,
                  use_hla_bool=True,
                  make_all_features_bool=False,
+                 make_all_features_categorial=False,
                  use_standardization=True,
                  raw_target_column='COVID_status',
                  raw_target_clumn_success_label='COVID',
@@ -136,6 +137,8 @@ def prepare_data(run_to_number_of_clones_path,
                 df[col] = df[col] / df['number_of_clones']
             elif make_all_features_bool:
                 df[col] = df[col].apply(lambda x: x > 0)
+            elif make_all_features_categorial:
+                df[col] = df[col].apply(lambda x: x if x < 3 else 3)
     desc = desc.merge(df.drop(columns=['number_of_clones']))
 
     if use_standardization:

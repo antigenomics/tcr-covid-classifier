@@ -134,6 +134,18 @@ def create_usage_matrices_for_functional():
             f'../data/standardized_log_exp_usage_matrix_{suffix}.csv')
 
 
+def create_joint_TRB_adaptive_fmba_um():
+    suffix = 'joint'
+    adaptive_stand_um = pd.read_csv('data/standardized_usage_matrix_adaptive.csv').drop(columns=['Unnamed: 0'])
+    fmba_stand_um = pd.read_csv('data/standardized_usage_matrix_fmba_TRB.csv').drop(columns=['Unnamed: 0'])
+    joint_um = pd.concat([fmba_stand_um, adaptive_stand_um])
+    joint_um = joint_um[['run', 'project', 'covid'] + [x for x in joint_um.columns if x.startswith('TRB')]].fillna(0)
+    norm_um = prepare_usage_matrix(joint_um)
+    norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
+    prepare_usage_matrix(joint_um, standardize_method=standardize_usage_matrix_log_exp).to_csv(
+        f'data/standardized_usage_matrix_{suffix}.csv')
+
+
 if __name__ == "__main__":
     if 'snakemake' in globals():
         if snakemake.params.gene == 'TRB':
@@ -141,6 +153,8 @@ if __name__ == "__main__":
                 create_usage_matrices_for_fmba_beta()
             elif snakemake.params.platform == 'adaptive':
                 create_usage_matrices_for_adaptive()
+            elif snakemake.params.platform == 'joint':
+                create_joint_TRB_adaptive_fmba_um()
         if snakemake.params.gene == 'TRA':
             if snakemake.params.platform == 'fmba':
                 create_usage_matrices_for_fmba_alpha()

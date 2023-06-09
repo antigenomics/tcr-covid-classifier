@@ -48,22 +48,21 @@ def evaluate_fisher(clone, no_feature_data, feature_data, run_to_number_of_clono
     return res[1]
 
 
-def get_top_changed_clonotypes(clonotype_matrix_path, desc_path, pvals, log_fold_change_threshold, logp_threshold,
-                               healthy_col='covid', healthy_label='healthy', platform='adaptive'):
-    print('vvvv')
-    cm = prepare_clonotype_matrix(clonotype_matrix_path, make_bool_features=True).merge(
-        prepare_run_column(pd.read_csv(desc_path)[['run', healthy_col, 'platform']])
+def get_top_changed_clonotypes(clonotype_matrix, desc, pvals, log_fold_change_threshold, logp_threshold,
+                               healthy_col='covid', healthy_label='healthy'):
+    print('v')
+    cm = prepare_run_column(clonotype_matrix).merge(
+        prepare_run_column(desc[['run', healthy_col]])
     )
-    cm = cm[cm.platform == platform]
 
     healthy_data = cm[cm[healthy_col] == healthy_label].drop_duplicates().set_index('run').drop(
-        columns=['covid', 'platform']).T.reset_index().rename(
+        columns=[healthy_col]).T.reset_index().rename(
         columns={'index': 'clone'}).set_index('clone')
     healthy_data['count_of_ways_h'] = healthy_data.sum(axis=1)
     healthy_data = healthy_data.reset_index()[['count_of_ways_h', 'clone']]
 
     ill_data = cm[cm[healthy_col] != healthy_label].drop_duplicates().set_index('run').drop(
-        columns=['covid', 'platform']).T.reset_index().rename(
+        columns=[healthy_col]).T.reset_index().rename(
         columns={'index': 'clone'}).set_index('clone')
     ill_data['count_of_ways_i'] = ill_data.sum(axis=1)
     ill_data = ill_data.reset_index()[['count_of_ways_i', 'clone']]

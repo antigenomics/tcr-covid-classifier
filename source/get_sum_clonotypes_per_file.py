@@ -9,7 +9,6 @@ run_to_clone_number = Manager().dict()
 def process_one_file(run):
     try:
         cur_data = pd.read_csv(f'{snakemake.input[1]}/{run}')
-        # cur_data = pd.read_csv(f'/projects/fmba_covid/1_data_links/hip_full/{run}', sep='\t')
         run_to_clone_number[run] = cur_data.shape[0]
         print(len(run_to_clone_number))
     except Exception as e:

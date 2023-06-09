@@ -6,6 +6,8 @@ import pandas as pd
 from scipy.stats import fisher_exact, binom, chi2_contingency
 from tqdm import tqdm
 from multipy.fwer import hochberg
+from multipy.fdr import lsu
+import numpy as np
 
 clone_to_pval = Manager().dict()
 
@@ -41,9 +43,9 @@ def process_one_clone_fisher(clone):
 
 
 def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, fisher=True, alternative='greater'):
-    arguments = [(x, healthy_data, covid_data, alternative) for x in clonotype_matrix.columns]
+    arguments = [(x, healthy_data[['run', x]], covid_data[['run', x]], alternative) for x in clonotype_matrix.columns]
     print(f'Testing started')
-    with Pool(snakemake.threads) as p:
+    with Pool(snakemake.threads, maxtasksperchild=2) as p:
         if fisher:
             p.map(process_one_clone_fisher, arguments)
         else:
@@ -51,7 +53,10 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
     pvals = []
     for clone in tqdm(clonotype_matrix.columns):
         pvals.append(clone_to_pval[clone])
-    significant_pvals = hochberg(pvals, alpha=0.05)
+    if snakemake.params.platform == 'fmba':
+        significant_pvals = lsu(np.array(pvals), q=0.05)
+    else:
+        significant_pvals = hochberg(pvals, alpha=0.05)
     if pval_save_path is not None:
         pd.DataFrame(data={'clone': clonotype_matrix.columns, 'pval': pvals}).to_csv(pval_save_path)
     significant_clones = []
@@ -62,10 +67,13 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
 
 
 def covid_test_matrix_based(clonotype_matrix, desc_path, save_path, pval_save_path=None, n=None, platform=None,
-                            fisher=True, marker_column='covid', marker_column_success_sign='covid', alternative='greater'):
+                            fisher=True, marker_column='covid', marker_column_success_sign='covid', alternative='greater',
+                            project_to_drop=None, project_column=None):
     desc = pd.read_csv(desc_path).drop(columns=['Unnamed: 0'])
     if platform is not None:
         desc = desc[desc.platform == platform]
+    if project_to_drop is not None:
+        desc = desc[~desc[project_column].str.contains(project_to_drop)]
     if n is not None:
         clonotype_matrix = clonotype_matrix.head(n)
     if 'cdr3aa' in clonotype_matrix.columns:
@@ -145,7 +153,10 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
         desc_path=um_path,
         save_path=save_path,
         pval_save_path=pval_save_path,
-        fisher=True)
+        fisher=True,
+        project_to_drop='NovaSeq7',
+        project_column='project'
+    )
 
 
 def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_folder_path, save_path, hla_keys=None):

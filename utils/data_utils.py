@@ -16,9 +16,11 @@ def calculate_real_and_gen_proba(pgen_path, cm_path, run_to_number_of_clonotypes
     return full_data
 
 
-def prepare_clonotype_matrix(clonotype_matrix_path, make_bool_features=False):
-    print(f'Preparing {clonotype_matrix_path}')
-    df = pd.read_csv(clonotype_matrix_path)
+def prepare_clonotype_matrix(clonotype_matrix_path=None, clonotype_matrix=None, make_bool_features=False):
+    if clonotype_matrix_path is not None:
+        df = pd.read_csv(clonotype_matrix_path)
+    if clonotype_matrix is not None:
+        df = clonotype_matrix
     if 'Unnamed: 0' in df.columns:
         df = df.drop(columns=['Unnamed: 0'])
     if 'cdr3aa' in df.columns:

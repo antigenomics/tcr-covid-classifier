@@ -9,7 +9,6 @@ import seaborn as sns
 from matplotlib.collections import PatchCollection
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.cluster.hierarchy import linkage, fcluster
-from scipy.stats import mannwhitneyu
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -214,6 +213,9 @@ def plot_clustermap_axes_based(usage_matrix, genes=['TRBV28', 'TRBV4-3', 'TRBV6-
     ax.get_xaxis().set_visible(False)
 
 
+from scipy.stats import mannwhitneyu, linregress
+
+
 def significant_clones_distribution(significant_clonotype_matrix, run_to_number_of_clones, desc, data_description,
                                     by='covid', reg_ax=None, hist_ax=None, fit_reg=True):
     for df in [significant_clonotype_matrix, run_to_number_of_clones, desc]:
@@ -230,38 +232,59 @@ def significant_clones_distribution(significant_clonotype_matrix, run_to_number_
         f, (reg_ax, hist_ax) = plt.subplots(1, 2, figsize=(15, 6))
 
     if hist_ax is not None:
-        print('up')
-        healthy_percents = healthy['sum'] / healthy['number_of_clones']
-        healthy_percents.hist(bins=25, label='healthy', alpha=0.75, density=True, ax=hist_ax)
-        ill_percents = ill['sum'] / ill['number_of_clones']
-        ill_percents.hist(bins=25, label=by, alpha=0.75, density=True, ax=hist_ax)
+        print('updated version')
+        bins_count = 10 if len(healthy) < 300 else 25
 
-        p = '{:.3g}'.format(mannwhitneyu(healthy_percents, ill_percents)[1])
+        healthy_percents = pd.DataFrame(data={'percent': healthy['sum'] / healthy['number_of_clones']})
+        healthy_percents['status'] = 'healthy'
+
+        ill_percents = pd.DataFrame(data={'percent': ill['sum'] / ill['number_of_clones']})
+        ill_percents['status'] = by
+
+        sns.histplot(data=pd.concat([healthy_percents, ill_percents]),
+                     x='percent',
+                     kde=True,
+                     alpha=0.5,
+                     stat="density",
+                     ax=hist_ax,
+                     hue='status',
+                     bins=bins_count
+                     )
+
+        p = '{:.3g}'.format(mannwhitneyu(healthy_percents.percent, ill_percents.percent)[1])
 
         hist_ax.set_ylabel(f'fraction of samples')
         hist_ax.set_xlabel(f'fraction of {by} associated clones in a sample')
         hist_ax.set_title(f'{sign_clone_count} {data_description}, M-W P={p}')
-        # axes[0].legend()
 
     if reg_ax is not None:
+        slope_h, intercept_h, r_h, p_h, sterr_h = linregress(x=healthy['number_of_clones'],
+                                                             y=healthy['sum'])
+        equation_healthy = 'healthy (y = ' + str(round(slope_h, 3)) + 'x{0:+g}'.format(round(intercept_h, 3)) + ')'
+        print(slope_h, intercept_h, r_h, p_h, sterr_h)
         sns.regplot(x='number_of_clones',
                     y='sum',
                     data=healthy,
-                    label='healthy',
+                    label=equation_healthy,
                     scatter_kws={'alpha': 0.5},
                     ax=reg_ax,
                     fit_reg=fit_reg)
+
+        slope_c, intercept_c, r_c, p_c, sterr_c = linregress(x=ill['number_of_clones'],
+                                                             y=ill['sum'])
+        print(slope_c, intercept_c, r_c, p_c, sterr_c)
+        equation_covid = 'covid (y = ' + str(round(slope_c, 3)) + 'x + ' + str(round(intercept_c, 3)) + ')'
         sns.regplot(x='number_of_clones',
                     y='sum',
                     data=ill,
-                    label=by,
+                    label=equation_covid,
                     scatter_kws={'alpha': 0.5},
                     ax=reg_ax,
                     fit_reg=fit_reg)
         reg_ax.set_xlabel('count of unique TCRs')
         reg_ax.set_ylabel(f'count of {by} associated clones')
         reg_ax.set_title(f'{by} associated clones for {data_description}')
-        # axes[1].legend()
+        reg_ax.legend()
 
 
 def plot_results_for_hla_class(hla_class, hla_keys, percents, features_counts, best_scores, errors=None,
@@ -600,27 +623,33 @@ def volcano_plot(clonotype_matrix_path, desc_path, pvals, healthy_col='covid', h
     sns.scatterplot(data=df, x='log_fold_change', y='logp')
 
 
-def plot_volcano(data, pval_threshold, fold_change_threshold, pval_column='pval', fold_change_column='log_fold_change',
+def plot_volcano(data, pval_threshold=None, fold_change_threshold=None, selected_clones=None, pval_column='pval',
+                 fold_change_column='log_fold_change',
                  ax=None):
     if ax is None:
         fig, ax = plt.subplots()
-    data['selected clone'] = data.apply(
-        lambda row: True if row[fold_change_column] > 2.5 and row[pval_column] < pval_threshold else False, axis=1)
+    if pval_threshold is not None and fold_change_threshold is not None:
+        data['selected clone'] = data.apply(
+            lambda row: True if row[fold_change_column] > 2.5 and row[pval_column] < pval_threshold else False, axis=1)
+    if selected_clones is not None:
+        data['selected clone'] = data.clone.apply(lambda x: x in selected_clones)
     sns.scatterplot(data=data, x=fold_change_column, y=pval_column, hue='selected clone', ax=ax, s=2)
-    ax.axvline(x=fold_change_threshold, linestyle='dashed', color='grey')
-    ax.axhline(y=pval_threshold, linestyle='dashed', color='grey')
+    if fold_change_threshold is not None:
+        ax.axvline(x=fold_change_threshold, linestyle='dashed', color='grey')
+    if pval_threshold is not None:
+        ax.axhline(y=pval_threshold, linestyle='dashed', color='grey')
     ax.set_yscale('log')
     ax.invert_yaxis()
 
 
-def plot_pandas_df_into_png(df, output_path):
-    fig, ax = plt.subplots()
-
-    # hide axes
-    fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
+def plot_pandas_df_into_png(df, output_path=None, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots()
+        # hide axes
+        fig.patch.set_visible(False)
+        ax.axis('off')
+        ax.axis('tight')
+        fig.tight_layout()
     ax.table(cellText=df.values, colLabels=df.columns, loc='center')
-    fig.tight_layout()
-
-    plt.savefig(output_path)
+    if output_path is not None:
+        plt.savefig(output_path)

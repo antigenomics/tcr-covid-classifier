@@ -14,11 +14,14 @@ warnings.filterwarnings("ignore")
 error_list = []
 
 
-def update_counts_for_run(path_to_run, run_frequencies, path_to_save):
+def update_counts_for_run(path_to_run, run_frequencies, path_to_save, count_of_clones_in_sample=None):
     run_name = path_to_run.split('/')[-1]
     print(f'started {run_name} at {datetime.datetime.now()}')
     try:
-        raw_data = pd.read_csv(path_to_run)
+        if 'adaptive' in snakemake.params.platform:
+            raw_data = pd.read_csv(path_to_run, sep='\t')
+        else:
+            raw_data = pd.read_csv(path_to_run)
         v_gene_names = set(run_frequencies.keys()).intersection(set(raw_data['v'].unique()))
 
         old_run_frequencies = run_frequencies.copy()
@@ -33,7 +36,10 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save):
         for v in run_frequencies:
             old_v_frequencies[v] = raw_data[raw_data['v'] == v]['old_freq'].sum()
 
-        full_count = raw_data['count'].sum()
+        if count_of_clones_in_sample is None:
+            full_count = raw_data['count'].sum()
+        else:
+            full_count = count_of_clones_in_sample
         random_numbers = np.random.uniform(0, 1, full_count).tolist()
         random_numbers.sort()
         assert min(random_numbers) == random_numbers[0]
@@ -68,7 +74,7 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save):
         raw_data['count'] = pd.Series(new_counts)
         raw_data['freq'] = raw_data['count'] / raw_data['count'].sum()
         raw_data[raw_data['count'] > 0].loc[::-1].reset_index(drop=True).to_csv(path_to_save + f'/{run_name}',
-                                                                                index=False)
+                                                                                    index=False)
     except Exception as e:
         error_list.append(path_to_run)
 
@@ -79,14 +85,18 @@ def process_one_file(run):
     run_frequencies = transposed_um[[run]].to_dict()[run]
     freqs_to_use = {x: y for (x, y) in run_frequencies.items() if 'TR' in x}
     if platform == 'fmba':
-        update_counts_for_run(f'{raw_data_path}/{platform}/{run}', freqs_to_use, path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+        update_counts_for_run(f'{raw_data_path}/{platform}/{run}',
+                              freqs_to_use,
+                              path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
     else:
-        if 'HIP' in run or 'KECK' in run:
+        if 'HIP' in run or 'Keck' in run:
             update_counts_for_run(f'{raw_data_path}/hip_full/{run}', freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
+                                  count_of_clones_in_sample=50000)
         else:
             update_counts_for_run(f'{raw_data_path}/adaptive_new/{run}', freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
+                                  count_of_clones_in_sample=50000)
 
 
 def process_all_files():

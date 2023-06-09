@@ -24,7 +24,7 @@ def process_all_files(usage_matrix_path, save_path, method='top', count_of_clone
     top = full_data.groupby(['cdr3aa'], as_index=False).count()
 
     if method == 'top':
-        top = top.sort_values(by=['count'], ascending=False).head(count_of_clones)
+        top = top[top['count'] < 0.4 * len(um)].sort_values(by=['count'], ascending=False).head(count_of_clones)
 
     elif method == 'random-roulette':
         top = top.sample(n=count_of_clones, random_state=42, weights='count')

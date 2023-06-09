@@ -82,7 +82,7 @@ def make_metaclone_cm(cm, cluster_info):
     return pd.DataFrame(new_cm_cols)
 
 
-def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitopes, vdjdb, save_path):
+def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitopes, vdjdb, save_path=None, ax=None):
     alpha_index = []
     beta_index = []
     epi = []
@@ -98,7 +98,17 @@ def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitope
 
     df = pd.DataFrame(data={'alpha_cluster': alpha_index, 'beta_cluster': beta_index,
                             'epitope': epi, 'antigen_species': species})
-    plot_pandas_df_into_png(df, save_path)
+    plot_pandas_df_into_png(df, output_path=save_path, ax=ax)
+
+
+def evaluate_value_for_alpha_beta(alpha, beta):
+    beta_ind = f'TRB_cluster_{beta}'
+    alpha_ind = f'TRA_cluster_{alpha}'
+    df = beta_cluster_presence[['run', beta_ind]].merge(
+            alpha_cluster_presence[['run', alpha_ind]]).drop(
+                columns=['run'])
+    df['joint'] = df.apply(lambda x: 1 if x[beta_ind] + x[alpha_ind] == 2 else 0, axis=1)
+    return df['joint'].sum() / (df[beta_ind].sum() + df[alpha_ind].sum() - df['joint'].sum())
 
 
 def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_path):
@@ -112,12 +122,7 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
     cooccurence90 = [[0 for _ in range(res_alpha.cluster.max() + 1)] for _ in range(res_beta.cluster.max() + 1)]
     for alpha_cluster in tqdm(range(res_alpha.cluster.max() + 1)):
         for beta_cluster in range(res_beta.cluster.max() + 1):
-            cooccurence90[beta_cluster][alpha_cluster] = get_cooccurence_value_for_clusters(
-                res_alpha[res_alpha.cluster == alpha_cluster].cdr3,
-                res_beta[res_beta.cluster == beta_cluster].cdr3,
-                alpha_matrix,
-                beta_matrix,
-                pairing_param=0.6)
+            cooccurence90[beta_cluster][alpha_cluster] = evaluate_value_for_alpha_beta(alpha_cluster, beta_cluster)
 
     beta_epitopes_dist_1 = {}
     for cluster in tqdm(res_beta.cluster.unique()):
@@ -149,6 +154,8 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
 
 
 if __name__ == "__main__":
+    beta_cluster_presence = pd.read_csv(snakemake.input[3]).drop(columns=['Unnamed: 0'])
+    alpha_cluster_presence = pd.read_csv(snakemake.input[4]).drop(columns=['Unnamed: 0'])
     alpha_beta_joint_usage_matrix_preparation(tra_cm_path=snakemake.input[0],
                                               trb_cm_path=snakemake.input[1],
                                               vdjdb_path=snakemake.input[2],
