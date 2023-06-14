@@ -7,7 +7,7 @@ def prepare_run_column(df):
 
 
 def calculate_real_and_gen_proba(pgen_path, cm_path, run_to_number_of_clonotypes, make_bool_features=True):
-    pgen = pd.read_csv(pgen_path, header=None, names=['clone', 'pgen'])
+    pgen = pd.read_csv(pgen_path, header=None, names=['clone', 'pgen'], error_bad_lines=False)
     sum_value = run_to_number_of_clonotypes.number_of_clones.sum()
     cm = prepare_clonotype_matrix(cm_path, make_bool_features=make_bool_features).drop(columns=['run'])
     preal = pd.DataFrame(cm.sum(axis=0) / sum_value).reset_index().rename(
@@ -38,5 +38,6 @@ def get_anomaly_clones(clonotype_matrix_path, desc_path=None, critical_percent=0
     cm = prepare_clonotype_matrix(clonotype_matrix_path, make_bool_features=True)
     if desc_path is not None:
         cm = cm.merge(prepare_clonotype_matrix(desc_path)[['run']])
-    results = pd.DataFrame(cm.drop(columns=['run']).sum(axis=0)).reset_index().rename(columns={'index': 'clone', 0: 'count'})
+    results = pd.DataFrame(cm.drop(columns=['run']).sum(axis=0)).reset_index().rename(
+        columns={'index': 'clone', 0: 'count'})
     return results[results['count'] > cm.shape[0] * critical_percent]

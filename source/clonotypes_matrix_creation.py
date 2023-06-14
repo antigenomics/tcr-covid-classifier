@@ -1,5 +1,4 @@
 import os
-import time
 from collections import defaultdict, Counter
 from multiprocessing import Pool, Manager
 
@@ -77,11 +76,10 @@ def process_all_files(save_path, most_common_clonotypes, um, mismatch_max=0, raw
     runs = [(x, mismatch_max, most_common_clonotypes, raw_data_folder, i) for i, x in enumerate(um['run'].tolist())]
     print('Start processing')
     with Pool(snakemake.threads) as p:
-        p.map(process_one_file, runs)#, chunksize=10)
+        p.map(process_one_file, runs)  # , chunksize=10)
         # p.close()
         # p.terminate()
         # p.join()
-    print(run_to_presence_of_clonotypes)
     data = {x: y for x, y in run_to_presence_of_clonotypes.items()}
     pd.DataFrame.from_dict(data=data).to_csv(save_path, index=False)
 
@@ -108,25 +106,19 @@ def clonotype_matrix_for_projects(projects_list, most_common_clones_path, save_p
     um = pd.read_csv('../data/standardized_log_exp_usage_matrix_joint_new.csv').drop(columns=['Unnamed: 0']).fillna(0)
     um = um[um.project.isin(projects_list)]
     process_all_files(save_path=save_path,
-                          most_common_clonotypes=pd.read_csv(most_common_clones_path),
-                          um=um,
-                          mismatch_max=mismatch)
+                      most_common_clonotypes=pd.read_csv(most_common_clones_path),
+                      um=um,
+                      mismatch_max=mismatch)
 
 
 if __name__ == "__main__":
     if 'snakemake' in globals():
-        if snakemake.params.platform == 'fmba':
+        if snakemake.params.platform == 'fmba' or snakemake.params.platform == 'adaptive':
             um = pd.read_csv(snakemake.input[0]).drop(columns=['Unnamed: 0']).fillna(0)
             process_all_files(save_path=snakemake.output[0],
-                              most_common_clonotypes=pd.read_csv(snakemake.input[2]),
-                              um=um,
-                              mismatch_max=1,
-                              raw_data_folder=snakemake.input[1],
-                              )
-        if snakemake.params.platform == 'adaptive':
-            um = pd.read_csv(snakemake.input[0]).drop(columns=['Unnamed: 0']).fillna(0)
-            process_all_files(save_path=snakemake.output[0],
-                              most_common_clonotypes=pd.read_csv(snakemake.input[2]),
+                              most_common_clonotypes=pd.read_csv(snakemake.input[2]).rename(columns={
+                                  'clone': 'cdr3aa'
+                              }),
                               um=um,
                               mismatch_max=1,
                               raw_data_folder=snakemake.input[1],
@@ -137,4 +129,3 @@ if __name__ == "__main__":
                                           clone_matrices_path=snakemake.output[0],
                                           raw_data_folder=snakemake.input[2],
                                           hla_keys=snakemake.params.hla_to_consider)
-

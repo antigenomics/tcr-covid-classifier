@@ -25,8 +25,15 @@ rule fmba_beta_usage_matrix_standardization:
     input: 'data/usage_matrix_fmba_TRB.csv'
     params: gene='TRB',
             platform='fmba'
-    output: 'data/standardized_usage_matrix_fmba_TRB.csv', 'data/normalized_usage_matrix_fmba_TRB.csv'
+    output: 'data/standardized_usage_matrix_fmba_TRB_wo_test_runs.csv', 'data/normalized_usage_matrix_fmba_TRB.csv'
     script: 'source/usage_matrix_preprocessing.py'
+
+rule fmba_beta_usage_matrix_test_column_creation:
+    threads: 1
+    input: 'data/standardized_usage_matrix_fmba_TRB_wo_test_runs.csv'
+    params: test_selection_method='percent', test_percent=0.1
+    output: 'data/standardized_usage_matrix_fmba_TRB.csv'
+    script: 'source/select_test_runs.py'
 
 rule resampling_fmba_beta:
     threads: 40
@@ -159,8 +166,15 @@ rule fmba_alpha_usage_matrix_standardization:
     input: 'data/usage_matrix_fmba_TRA.csv'
     params: gene='TRA',
             platform='fmba'
-    output: 'data/standardized_usage_matrix_fmba_TRA.csv', 'data/normalized_usage_matrix_fmba_TRA.csv'
+    output: 'data/standardized_usage_matrix_fmba_TRA_wo_test_runs.csv', 'data/normalized_usage_matrix_fmba_TRA.csv'
     script: 'source/usage_matrix_preprocessing.py'
+
+rule fmba_alpha_usage_matrix_test_column_creation:
+    threads: 1
+    input: 'data/standardized_usage_matrix_fmba_TRA_wo_test_runs.csv'
+    params: test_selection_method='percent', test_percent=0.1
+    output: 'data/standardized_usage_matrix_fmba_TRA.csv'
+    script: 'source/select_test_runs.py'
 
 rule fmba_alpha_usage_matrix_creation:
     threads: 1
@@ -325,56 +339,65 @@ rule joint_usage_matrix_creation:
     output: 'data/standardized_usage_matrix_joint.csv', 'data/normalized_usage_matrix_joint.csv'
     script: 'source/usage_matrix_preprocessing.py'
 
-######################################################################################################################
+rule joint_clonotypes_resampling:
+    threads: 40
+    input: 'data/standardized_usage_matrix_joint.csv'
+    params: gene='TRB',
+            platform='joint'
+    output: directory(f'{config["all_raw_data_path"]}/downsampled_joint')
+    script: 'source/downsampling_procedure.py'
 
-# rule joint_usage_matrix_creation:
-#     threads: 1
-#     params: desc_path=f'{config["fmba_desc"]}',
-#             raw_data_path=f'{config["all_raw_data_path"]}',
-#             gene='TRB',
-#             platform='fmba'
-#     output: 'data/usage_matrix_fmba_TRB.csv'
-#     script: 'source/repertoire_matrix_extraction.py'
-#
-# rule joint_usage_matrix_standardization:
-#     threads: 1
-#     input: 'data/usage_matrix_fmba_TRB.csv'
-#     params: gene='TRB',
-#             platform='fmba'
-#     output: 'data/standardized_usage_matrix_fmba_TRB.csv', 'data/normalized_usage_matrix_fmba_TRB.csv'
-#     script: 'source/usage_matrix_preprocessing.py'
-#
-# rule resampling_joint:
-#     threads: 40
-#     input: 'data/standardized_usage_matrix_fmba_TRB.csv'
-#     params: gene='TRB',
-#             platform='fmba'
-#     output: directory(f'{config["all_raw_data_path"]}/downsampled_fmba_TRB')
-#     script: 'source/downsampling_procedure.py'
-#
-# rule joint_clonotype_matrix_creation_fmba_based_clones:
-#     threads: 1
-#
-# rule create_sample_to_num_of_clones_mapping_fmba_TRB:
-#     threads: 40
-#     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
-#            f'{config["all_raw_data_path"]}/downsampled_fmba_TRB',
-#     output: 'data/run_to_number_of_clones_fmba_TRB.csv'
-#     script: 'source/get_sum_clonotypes_per_file.py'
-#
-# rule olga_pgen_generation_fmba_TRB:
-#     input: 'data/covid_significant_clones_fmba_TRB_top_500k.csv'
-#     output: 'data/covid_fmba_TRB_pgen.csv'
-#     shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
-#
+rule clone_matrix_creation_joint_fmba_based:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='fmba'
+    input: 'data/standardized_usage_matrix_joint.csv',
+           f'{config["all_raw_data_path"]}/downsampled_joint',
+           'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+    output: 'data/clone_matrix_joint_fmba_based.csv'
+    script: 'source/clonotypes_matrix_creation.py'
 
+rule clone_matrix_prep_joint_fmba_based:
+    input:  'data/clone_matrix_joint_fmba_based.csv',
+           'data/covid_significant_clones_fmba_TRB_top_500k.csv'
+    params: platform='fmba'
+    output: 'data/sign_clone_matrix_joint_fmba_based.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
+rule clone_matrix_creation_joint_adaptive_based:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='adaptive'
+    input: 'data/standardized_usage_matrix_joint.csv',
+           f'{config["all_raw_data_path"]}/downsampled_joint',
+           'data/covid_significant_clones_adaptive.csv'
+    output: 'data/clone_matrix_joint_adaptive_based.csv'
+    script: 'source/clonotypes_matrix_creation.py'
+
+rule clone_matrix_prep_joint_adaptive_based:
+    input:  'data/clone_matrix_joint_adaptive_based.csv',
+           'data/covid_significant_clones_adaptive.csv'
+    params: platform='fmba'
+    output: 'data/sign_clone_matrix_joint_adaptive_based.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
+rule olga_pgen_generation_adaptive:
+    input: 'data/covid_significant_clones_adaptive.csv'
+    output: 'data/covid_adaptive_pgen.csv'
+    shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
+
+rule create_sample_to_num_of_clones_mapping_joint:
+    threads: 40
+    input: 'data/standardized_usage_matrix_joint.csv',
+           f'{config["all_raw_data_path"]}/downsampled_joint',
+    output: 'data/run_to_number_of_clones_joint.csv'
+    script: 'source/get_sum_clonotypes_per_file.py'
 ######################################################################################################################
 
 rule figure_1:
     threads: 1
     input: 'data/desc_fmba_not_nan_hla.csv', 'data/fmba_2021.txt', 'data/desc_fmba_new_split.csv',
-         'data/standardized_usage_matrix_fmba_TRB.csv', 'data/standardized_usage_matrix_fmba_TRB.csv',
+         'data/standardized_usage_matrix_fmba_TRB.csv', 'data/normalized_usage_matrix_fmba_TRB.csv',
          'data/standardized_usage_matrix_fmba_TRA.csv', 'data/normalized_usage_matrix_fmba_TRA.csv',
          'publication-notebooks/fig1.ipynb'
     output: 'figures/fig1.png'
@@ -397,6 +420,8 @@ rule figure_2:
             'data/run_to_number_of_clones_fmba_TRA.csv',
             'data/TRA_TRB_cooccurence_matrix_cooccurence_85.csv',
             'data/alpha_beta_paired_epitopes.csv',
+            'data/standardized_usage_matrix_fmba_TRB.csv',
+            'data/standardized_usage_matrix_fmba_TRA.csv',
             'publication-notebooks/fig2.ipynb'
     output: 'figures/fig2.png'
     shell: '''
@@ -436,3 +461,16 @@ rule figure_4:
             python publication-notebooks/fig4.py
             rm publication-notebooks/fig4.py
            '''
+
+rule figure_5:
+    threads: 1
+    input: 'data/standardized_usage_matrix_joint.csv', 'data/normalized_usage_matrix_joint.csv',
+         'data/covid_significant_clone_pvals_adaptive.csv', 'data/covid_adaptive_pgen.csv',
+         'data/vdjdb.txt', 'data/run_to_number_of_clones_adaptive.csv', 'data/desc_fmba_not_nan_hla.csv',
+         'data/run_to_number_of_clones_joint.csv', 'data/run_to_number_of_clones_fmba_TRB.csv',
+         'data/sign_clone_matrix_joint_fmba_based.csv', 'data/sign_clone_matrix_joint_adaptive_based.csv'
+    output: 'publication-notebooks/fig5.py'
+    shell: '''
+            jupyter nbconvert --to python publication-notebooks/fig5.ipynb
+           '''
+

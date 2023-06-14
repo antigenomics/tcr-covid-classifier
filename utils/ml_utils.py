@@ -106,14 +106,11 @@ def prepare_data(run_to_number_of_clones_path,
                  use_standardization=True,
                  raw_target_column='COVID_status',
                  raw_target_clumn_success_label='COVID',
-                 final_target_column='covid'):
+                 final_target_column='covid', metadata_columns=['is_test_run']):
     run_to_number_of_clones = prepare_run_column(pd.read_csv(run_to_number_of_clones_path))
     columns_to_save = []
     desc = prepare_run_column(pd.read_csv(desc_path))
-    if 'folder' in desc.columns:
-        columns_to_save = ['run', raw_target_column, 'folder']
-    else:
-        columns_to_save = ['run', raw_target_column]
+    columns_to_save = ['run', raw_target_column] + metadata_columns
     desc = desc[columns_to_save]
     desc = desc[desc[raw_target_column] != 'unknown']
     desc[raw_target_column] = desc[raw_target_column].apply(lambda x: 1 if raw_target_clumn_success_label == x else 0)
@@ -158,8 +155,8 @@ def prepare_data(run_to_number_of_clones_path,
             raise Exception('HLA keys path essential!')
 
     data[final_target_column] = desc[raw_target_column]
-    if 'folder' in columns_to_save:
-        data['folder'] = desc['folder']
+    for desc_column in metadata_columns:
+        data[desc_column] = desc[desc_column]
     return data
 
 
@@ -198,6 +195,18 @@ def evaluate_models(X_train, y_train, X_test, y_test, model_params, scoring_func
     print(f'Best model is {model_names[best_model_idx]} with params: {params[best_model_idx]}')
 
     return best_clfs_encode_fmba, scores[best_model_idx], model_names[best_model_idx]
+
+
+def split_data(data,y_column, by='is_test_run'):
+    train_data = data[~data[by]]
+    test_data = data[data[by]]
+
+    y_train = train_data[y_column]
+    X_train = train_data.drop(columns=[by, y_column])
+
+    y_test = test_data[y_column]
+    X_test = test_data.drop(columns=[by, y_column])
+    return X_train, y_train, X_test, y_test
 
 
 def split_data_by_batch(data, test_batches, y_column, batch_column='folder'):

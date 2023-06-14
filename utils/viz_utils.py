@@ -339,7 +339,7 @@ def plot_occurances_in_samples_distribution(clonotype_matrix_path, desc_path, bi
 
 
 def __create_data_for_platform(pgen_path, cm_path, run_to_number_of_clonotypes, make_bool_features=True):
-    pgen = pd.read_csv(pgen_path, header=None, names=['clone', 'pgen'])
+    pgen = pd.read_csv(pgen_path, header=None, names=['clone', 'pgen'], error_bad_lines=False)
     sum_value = run_to_number_of_clonotypes.number_of_clones.sum()
     cm = prepare_clonotype_matrix(cm_path, make_bool_features=make_bool_features).drop(columns=['run'])
     preal = pd.DataFrame(cm.sum(axis=0) / sum_value).reset_index().rename(

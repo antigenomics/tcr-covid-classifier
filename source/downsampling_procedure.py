@@ -16,7 +16,7 @@ error_list = []
 
 def update_counts_for_run(path_to_run, run_frequencies, path_to_save, count_of_clones_in_sample=None):
     run_name = path_to_run.split('/')[-1]
-    print(f'started {run_name} at {datetime.datetime.now()}')
+    # print(f'started {run_name} at {datetime.datetime.now()}')
     try:
         if 'adaptive' in snakemake.params.platform:
             raw_data = pd.read_csv(path_to_run, sep='\t')
@@ -78,7 +78,7 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save, count_of_c
     except Exception as e:
         error_list.append(path_to_run)
 
-    print(f'ended {path_to_save}/{run_name} at {datetime.datetime.now()}')
+    # print(f'ended {path_to_save}/{run_name} at {datetime.datetime.now()}')
 
 
 def process_one_file(run):
@@ -88,7 +88,7 @@ def process_one_file(run):
         update_counts_for_run(f'{raw_data_path}/{platform}/{run}',
                               freqs_to_use,
                               path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
-    else:
+    elif platform == 'adaptive':
         if 'HIP' in run or 'Keck' in run:
             update_counts_for_run(f'{raw_data_path}/hip_full/{run}', freqs_to_use,
                                   path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
@@ -97,6 +97,18 @@ def process_one_file(run):
             update_counts_for_run(f'{raw_data_path}/adaptive_new/{run}', freqs_to_use,
                                   path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
                                   count_of_clones_in_sample=50000)
+    elif platform == 'joint':
+        if '.clonotypes.TRB' in run:
+            update_counts_for_run(f'{raw_data_path}/downsampled_fmba_TRB/{run}',
+                                  freqs_to_use,
+                                  path_to_save=f'{raw_data_path}/downsampled_joint',
+                                  )
+        else:
+            update_counts_for_run(f'{raw_data_path}/downsampled_adaptive_TRB/{run}',
+                                  freqs_to_use,
+                                  path_to_save=f'{raw_data_path}/downsampled_joint',
+                                  )
+
 
 
 def process_all_files():

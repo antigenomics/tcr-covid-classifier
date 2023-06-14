@@ -93,7 +93,7 @@ def create_usage_matrices_for_fmba_beta():
     norm_um = prepare_usage_matrix(usage_matrix)
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(usage_matrix, standardize_method=standardize_usage_matrix_log_exp).to_csv(
-        f'data/standardized_usage_matrix_{suffix}.csv')
+        f'data/standardized_usage_matrix_{suffix}_wo_test_runs.csv')
 
 
 def create_usage_matrices_for_fmba_alpha():
@@ -102,7 +102,7 @@ def create_usage_matrices_for_fmba_alpha():
     norm_um = prepare_usage_matrix(usage_matrix)
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(usage_matrix, standardize_method=standardize_usage_matrix_log_exp).to_csv(
-        f'data/standardized_usage_matrix_{suffix}.csv')
+        f'data/standardized_usage_matrix_{suffix}_wo_test_runs.csv')
 
 
 def create_usage_matrices_for_adaptive():
@@ -140,9 +140,10 @@ def create_joint_TRB_adaptive_fmba_um():
     fmba_stand_um = pd.read_csv('data/standardized_usage_matrix_fmba_TRB.csv').drop(columns=['Unnamed: 0'])
     joint_um = pd.concat([fmba_stand_um, adaptive_stand_um])
     joint_um = joint_um[['run', 'project', 'covid'] + [x for x in joint_um.columns if x.startswith('TRB')]].fillna(0)
-    norm_um = prepare_usage_matrix(joint_um)
+    norm_um = prepare_usage_matrix(joint_um, annotation_columns=['run', 'project', 'covid'])
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
-    prepare_usage_matrix(joint_um, standardize_method=standardize_usage_matrix_log_exp).to_csv(
+    prepare_usage_matrix(joint_um, standardize_method=standardize_usage_matrix_log_exp,
+                         annotation_columns=['run', 'project', 'covid']).to_csv(
         f'data/standardized_usage_matrix_{suffix}.csv')
 
 
