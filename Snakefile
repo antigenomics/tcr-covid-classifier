@@ -31,7 +31,7 @@ rule fmba_beta_usage_matrix_standardization:
 rule fmba_beta_usage_matrix_test_column_creation:
     threads: 1
     input: 'data/standardized_usage_matrix_fmba_TRB_wo_test_runs.csv'
-    params: test_selection_method='percent', test_percent=0.1
+    params: test_selection_method='percent', test_percent=0.2
     output: 'data/standardized_usage_matrix_fmba_TRB.csv'
     script: 'source/select_test_runs.py'
 
@@ -75,7 +75,7 @@ rule fisher_test_fmba_TRB:
     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
            'data/run_to_number_of_clones_fmba_TRB.csv',
            'data/clone_matrix_fmba_TRB_top_500k.csv'
-    params: platform='fmba'
+    params: platform='fmba', significant_threshold=0.01
     output: 'data/covid_significant_clones_fmba_TRB_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
@@ -172,7 +172,7 @@ rule fmba_alpha_usage_matrix_standardization:
 rule fmba_alpha_usage_matrix_test_column_creation:
     threads: 1
     input: 'data/standardized_usage_matrix_fmba_TRA_wo_test_runs.csv'
-    params: test_selection_method='percent', test_percent=0.1
+    params: test_selection_method='percent', test_percent=0.2
     output: 'data/standardized_usage_matrix_fmba_TRA.csv'
     script: 'source/select_test_runs.py'
 
@@ -225,7 +225,7 @@ rule fisher_test_fmba_TRA:
     input: 'data/standardized_usage_matrix_fmba_TRA.csv',
            'data/run_to_number_of_clones_fmba_TRA.csv',
            'data/clone_matrix_fmba_TRA_top_500k.csv'
-    params: platform='fmba'
+    params: platform='fmba', significant_threshold=0.01
     output: 'data/covid_significant_clones_fmba_TRA_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
