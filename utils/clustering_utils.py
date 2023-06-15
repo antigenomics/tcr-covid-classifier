@@ -134,9 +134,15 @@ def get_significant_epitopes_to_clone_mapping(vdjdb, res_beta, cluster, signific
     return result
 
 
+def cluster_epitopes_freq_calc(x, vdjdb, gene):
+    vdjdb_value = vdjdb[
+        (vdjdb.gene == gene) & (vdjdb['antigen.epitope'] == x['antigen.epitope'])].cdr3.nunique()
+    return 0 if vdjdb_value == 0 else x['count'] / vdjdb_value
+
+
 def get_most_frequent_cluster_by_vdjdb_occurence(vdjdb, cluster_epitopes, gene='TRB'):
-    cluster_epitopes['cluster_epitopes_freq'] = cluster_epitopes.apply(lambda x: x['count'] / vdjdb[
-        (vdjdb.gene == gene) & (vdjdb['antigen.epitope'] == x['antigen.epitope'])].cdr3.nunique(), axis=1)
+    cluster_epitopes['cluster_epitopes_freq'] = cluster_epitopes.apply(
+        lambda x: cluster_epitopes_freq_calc(x, vdjdb, gene), axis=1)
     return cluster_epitopes.sort_values(by='cluster_epitopes_freq', ascending=False).reset_index(drop=True).loc[0, :]
 
 
