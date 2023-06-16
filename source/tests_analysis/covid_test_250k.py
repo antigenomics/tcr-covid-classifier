@@ -70,9 +70,9 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
 def covid_test_matrix_based(clonotype_matrix, desc_path, save_path,
                             pval_save_path=None, n=None, platform=None,
                             fisher=True, marker_column='covid',
-                            marker_column_success_sign='covid', alternative='greater'):
+                            marker_column_success_sign='covid', alternative='greater', drop_test=False):
     desc = pd.read_csv(desc_path).drop(columns=['Unnamed: 0'])
-    if 'is_test_run' in desc.columns:
+    if 'is_test_run' in desc.columns and drop_test:
         desc = desc[~desc.is_test_run]
     if platform is not None:
         desc = desc[desc.platform == platform]
@@ -146,7 +146,7 @@ def covid_test_for_alpha_chain(n=500000):
         fisher=True)
 
 
-def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path):
+def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path, drop_test):
     global run_to_number_of_clonotypes
     run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
 
@@ -156,6 +156,7 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
         save_path=save_path,
         pval_save_path=pval_save_path,
         fisher=True,
+        drop_test=drop_test
     )
 
 
@@ -174,16 +175,18 @@ def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_
 
 if __name__ == "__main__":
     if 'snakemake' in globals():
-        if 'significant_threshold' in snakemake.params:
-            significant_threshold = snakemake.params.significant_threshold
-        else:
-            significant_threshold = 0.05
+        significant_threshold = snakemake.params.significant_threshold
+        print(f'Multiple test threshold {significant_threshold}')
+        drop_test = snakemake.params.drop_test
+        print(f'Test to be dropped: {drop_test}')
+
         if snakemake.params.platform == 'fmba' or snakemake.params.platform == 'adaptive':
             covid_test_for_fmba(run_to_number_of_clones_path=snakemake.input[1],
                                 clonotype_matrix_path=snakemake.input[2],
                                 um_path=snakemake.input[0],
                                 save_path=snakemake.output[0],
-                                pval_save_path=snakemake.output[1]
+                                pval_save_path=snakemake.output[1],
+                                drop_test=drop_test
                                 )
         if snakemake.params.platform == 'fmba-allele':
             hla_keys = snakemake.params.hla_to_consider

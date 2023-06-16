@@ -1,3 +1,8 @@
+import os,sys,inspect
+print(os.getcwd())
+sys.path.append(os.getcwd())
+
+
 import pandas as pd
 from utils.data_utils import calculate_real_and_gen_proba, prepare_clonotype_matrix
 

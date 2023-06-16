@@ -5,7 +5,8 @@ if __name__ == "__main__":
     um_path = snakemake.input[0]
     um = pd.read_csv(um_path).drop(columns=['Unnamed: 0'])
     if snakemake.params.test_selection_method == 'batch':
-        um['is_test_run'] = um.project.apply(lambda x: x.lower().contains(snakemake.params.test_batch.lower()))
+        um['is_test_run'] = um.project.apply(lambda x: snakemake.params.test_batch.lower() in x.lower())
+        um.to_csv(snakemake.output[0])
     elif snakemake.params.test_selection_method == 'percent':
         healthy_um = um[um.covid == 'healthy'].sort_values(by='run')
         covid_um = um[um.covid != 'healthy'].sort_values(by='run')

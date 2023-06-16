@@ -1,3 +1,7 @@
+import os,sys,inspect
+print(os.getcwd())
+sys.path.append(os.getcwd())
+
 import pandas as pd
 from utils.clustering_utils import seqs2hamming
 from utils.data_utils import prepare_clonotype_matrix

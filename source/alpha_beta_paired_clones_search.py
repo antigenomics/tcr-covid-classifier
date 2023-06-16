@@ -1,4 +1,7 @@
-import os
+import os,sys,inspect
+print(os.getcwd())
+sys.path.append(os.getcwd())
+
 
 from utils.clustering_utils import check_significant_epitopes_for_cluster, seqs2hamming
 
