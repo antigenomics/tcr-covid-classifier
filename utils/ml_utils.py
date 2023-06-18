@@ -57,8 +57,8 @@ def get_model(model):
     return classifiers
 
 
-def get_parameters():
-    return {
+def get_parameters(models=None):
+    params = {
         'svm': {'model__C': (1, 5, 10, 50, 100),
                 'model__kernel': ('linear', 'poly', 'rbf', 'sigmoid'),
                 'model__probability': [True],
@@ -66,14 +66,18 @@ def get_parameters():
         'ab': {'model__n_estimators': (10, 25, 50, 100, 125, 150, 200),
                'model__base_estimator': (DecisionTreeClassifier(max_depth=1), DecisionTreeClassifier(max_depth=3)),
                'model__random_state': [42]},
+
         'knn': {'model__n_neighbors': (3, 5, 10, 50, 75, 100),
                 'model__leaf_size': (1, 2, 3, 5, 10, 15, 20),
                 'model__weights': ['uniform', 'distance']},
+
         'rfc': {'model__max_depth': (1, 2, 3),
                 'model__n_estimators': (50, 75, 100, 125, 150, 200),
                 'model__min_samples_leaf': (8, 10),
                 'model__oob_score': (False, True),
-                'model__random_state': [42]},
+                'model__random_state': [42],
+                'model__n_jobs': [-1]},
+
         'mlpclassifier': {'model__hidden_layer_sizes': (
             (100, 60, 30, 10),
             (150, 100, 50, 25, 10),
@@ -81,12 +85,16 @@ def get_parameters():
             'model__alpha': (0.0001, 0.001, 0.00001, 0.01),
             'model__learning_rate': ['constant', 'adaptive'],
             'model__max_iter': [1000],
-            'model__random_state': [42]
-        },
+            'model__random_state': [42]},
+
         'xgboost': {'model__n_estimators': (10, 25, 50, 75, 100),
                     'model__subsample': (0.25, 0.5, 0.75, 1),
-                    'model__random_state': [42]}
+                    'model__random_state': [42],
+                    'model__n_jobs': [-1]},
     }
+    if models is not None:
+        return {x: y for x, y in params.items() if x in models}
+    return params
 
 
 def prepare_run_column(df):

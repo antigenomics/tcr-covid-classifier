@@ -5,7 +5,10 @@ def create_significant_clonotype_matrix(clonotype_matrix_path, significant_clone
     clonotype_matrix = pd.read_csv(clonotype_matrix_path)
     clonotype_matrix = clonotype_matrix.set_index('cdr3aa').T.reset_index().rename(columns={'index': 'run'})
     significant_clones = pd.read_csv(significant_clones_path)
-    useful_columns = list(significant_clones.clone) + ['run']
+    clone_column = 'clone'
+    if clone_column not in significant_clones.columns:
+        clone_column = 'cdr3aa'
+    useful_columns = list(significant_clones[clone_column]) + ['run']
     clonotype_matrix[useful_columns].to_csv(save_path)
 
 

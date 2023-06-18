@@ -136,8 +136,8 @@ def create_usage_matrices_for_functional():
 
 def create_joint_TRB_adaptive_fmba_um():
     suffix = 'joint'
-    adaptive_stand_um = pd.read_csv('data/standardized_usage_matrix_adaptive.csv').drop(columns=['Unnamed: 0'])
-    fmba_stand_um = pd.read_csv('data/standardized_usage_matrix_fmba_TRB.csv').drop(columns=['Unnamed: 0'])
+    adaptive_stand_um = pd.read_csv('data/usage_matrix_adaptive.csv').drop(columns=['Unnamed: 0'])
+    fmba_stand_um = pd.read_csv('data/usage_matrix_fmba_TRB.csv').drop(columns=['Unnamed: 0'])
     joint_um = pd.concat([fmba_stand_um, adaptive_stand_um])
     joint_um = joint_um[['run', 'project', 'covid'] + [x for x in joint_um.columns if x.startswith('TRB')]].fillna(0)
     norm_um = prepare_usage_matrix(joint_um, annotation_columns=['run', 'project', 'covid'])

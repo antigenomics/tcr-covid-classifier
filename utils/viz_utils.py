@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.stats import gaussian_kde as kde
+from matplotlib.colors import Normalize
+from matplotlib import cm
 from matplotlib.collections import PatchCollection
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -436,21 +439,20 @@ def plot_cooccurence_heatmap_with_epitopes_labeling(plotting_df, annot_df, ax=No
 
 
 def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df, fig=None, ax=None,
-                                                           epitopes_count_threshold=0, corr_threshold=0.1, legend_x=1.05):
+                                                           epitopes_count_threshold=0, corr_threshold_row=0.1,
+                                                           corr_threshold_col=0.1, legend_x=1.05):
     if ax is None:
         if plotting_df.shape[0] > plotting_df.shape[1]:
             fig, ax = plt.subplots(figsize=(2.5, 20))
         else:
             fig, ax = plt.subplots(figsize=(20, 2.5))
 
-    selected_cols = plotting_df.columns[(plotting_df.sum() > corr_threshold) & (annot_df.sum() >= epitopes_count_threshold)]
+    selected_cols = plotting_df.loc[:, (plotting_df.max() > corr_threshold_col) & (annot_df.sum() >= epitopes_count_threshold)].columns
+    print(len(selected_cols))
     data_to_plot = \
-    plotting_df.loc[(plotting_df.sum(axis=1) > corr_threshold) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
-        selected_cols]
+    plotting_df.loc[(plotting_df.max(axis=1) > corr_threshold_row) & (annot_df.sum(axis=1) >= epitopes_count_threshold),selected_cols]
     bubble_sizes = \
-    annot_df.loc[(plotting_df.sum(axis=1) > corr_threshold) & (annot_df.sum(axis=1) >= epitopes_count_threshold), :][
-        selected_cols]
-
+    annot_df.loc[(plotting_df.max(axis=1) > corr_threshold_row) & (annot_df.sum(axis=1) >= epitopes_count_threshold), selected_cols]
     ylabels = np.array([x for x in data_to_plot.index])
     xlabels = np.array([x for x in data_to_plot.columns])
 
@@ -495,9 +497,6 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
               labelspacing=1.5,
               bbox_to_anchor=(legend_x, 1.15),
               frameon=False)
-    print('рррh')
-    # sns.move_legend(ax, "upper right", bbox_to_anchor=(1.1, 1.1))
-
 
 def plot_waterfall_by_column(data, proba_column, label_column, ax=None):
     results = data[[label_column, proba_column]].sort_values(by=proba_column)
@@ -623,21 +622,49 @@ def volcano_plot(clonotype_matrix_path, desc_path, pvals, healthy_col='covid', h
     sns.scatterplot(data=df, x='log_fold_change', y='logp')
 
 
+def make_different_colors(all_points, points):
+    densObj = kde(all_points, bw_method=0.5)
+
+    def makeColours(vals):
+        colors = np.zeros((len(vals), 3))
+        norm = Normalize(vmin=vals.min(), vmax=vals.max())
+        colors = [cm.ScalarMappable(norm=norm, cmap='viridis').to_rgba(val) for val in vals]
+        return colors
+
+    return makeColours(densObj.evaluate(points))
+
+
 def plot_volcano(data, pval_threshold=None, fold_change_threshold=None, selected_clones=None, pval_column='pval',
-                 fold_change_column='log_fold_change',
-                 ax=None):
+                 fold_change_column='log_fold_change', ax=None):
     if ax is None:
         fig, ax = plt.subplots()
     if pval_threshold is not None and fold_change_threshold is not None:
         data['selected clone'] = data.apply(
-            lambda row: True if row[fold_change_column] > 2.5 and row[pval_column] < pval_threshold else False, axis=1)
+            lambda row: True if row[fold_change_column] > fold_change_threshold and row[pval_column] < pval_threshold else False, axis=1)
     if selected_clones is not None:
         data['selected clone'] = data.clone.apply(lambda x: x in selected_clones)
-    sns.scatterplot(data=data, x=fold_change_column, y=pval_column, hue='selected clone', ax=ax, s=2)
+    all_data_np = data[(data[fold_change_column] != np.inf) & (data[fold_change_column] > 1)][
+        [fold_change_column, pval_column]].dropna().to_numpy().T
+    all_data_np[~np.isfinite(all_data_np)] = 0
+
+    plotting_data_background = data[~data['selected clone']][[fold_change_column, pval_column]].to_numpy().T
+    plotting_data = data[(data['selected clone']) & (data[fold_change_column] != np.inf)][
+        [fold_change_column, pval_column]].to_numpy().T
+    print(plotting_data)
+    plotting_data[:, 1] = -np.log10(plotting_data[:, 1])
+
+    plt.scatter(plotting_data_background[0], plotting_data_background[1], alpha=0.4, s=5,
+                color=['grey' for _ in range(plotting_data_background.shape[1])])
+    plt.scatter(plotting_data[0], plotting_data[1], alpha=0.4, s=5,
+                color=make_different_colors(plotting_data, plotting_data))
+
     if fold_change_threshold is not None:
         ax.axvline(x=fold_change_threshold, linestyle='dashed', color='grey')
     if pval_threshold is not None:
         ax.axhline(y=pval_threshold, linestyle='dashed', color='grey')
+    ax.set_xlabel('log fold change')
+    ax.set_ylabel('p-value')
+
     ax.set_yscale('log')
     ax.invert_yaxis()
 

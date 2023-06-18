@@ -4,7 +4,11 @@ rule all:
   input:
     'figures/fig1.png',
     'figures/fig2.png',
-    'figures/fig4.png'
+    'figures/fig3.png',
+    'figures/fig4.png',
+    'figures/fig5.png',
+    'figures/supp_fig2.png',
+    'figures/supp_fig3.png'
 
 rule preprocess_metadata:
     input: 'data/fmba_2021.txt'
@@ -64,6 +68,23 @@ rule clone_matrix_creation_fmba_TRB:
     output: 'data/clone_matrix_fmba_TRB_top_500k.csv'
     script: 'source/clonotypes_matrix_creation.py'
 
+rule clone_matrix_creation_vdjdb_fmba_TRB:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='fmba'
+    input: 'data/standardized_usage_matrix_fmba_TRB.csv',
+           f'{config["all_raw_data_path"]}/downsampled_fmba_TRB',
+           'data/vdjdb_TRB_covid_clones.csv'
+    output: 'data/clone_matrix_vdjdb_fmba_TRB_not_processed.csv'
+    script: 'source/clonotypes_matrix_creation.py'
+
+rule fisher_significant_clone_matrix_vdjdb_fmba_TRB:
+    input: 'data/clone_matrix_vdjdb_fmba_TRB_not_processed.csv',
+           'data/vdjdb_TRB_covid_clones.csv'
+    params: platform='fmba'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRB_vdjdb.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
 rule create_sample_to_num_of_clones_mapping_fmba_TRB:
     threads: 40
     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
@@ -76,7 +97,7 @@ rule fisher_test_fmba_TRB:
     input: 'data/standardized_usage_matrix_fmba_TRB.csv',
            'data/run_to_number_of_clones_fmba_TRB.csv',
            'data/clone_matrix_fmba_TRB_top_500k.csv'
-    params: platform='fmba', significant_threshold=0.05, drop_test=True
+    params: platform='fmba', significant_threshold=0.01, drop_test=False
     output: 'data/covid_significant_clones_fmba_TRB_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
@@ -144,7 +165,7 @@ rule hla_associatiated_TRB_clones_search:
 rule hla_based_covid_associated_TRB_clones_search:
     threads: 40
     params: hla_to_consider=['A*02', 'DQB1*05', 'DRB1*16'],
-            platform='fmba-allele'
+            platform='fmba-allele', significant_threshold=0.05, drop_test=False
     input: 'data/run_to_number_of_clones_fmba_TRB.csv',
             'data/hla_desc',
             'data/hla_clonotype_matrices',
@@ -215,6 +236,23 @@ rule clone_matrix_creation_fmba_TRA:
     output: 'data/clone_matrix_fmba_TRA_top_500k.csv'
     script: 'source/clonotypes_matrix_creation.py'
 
+rule clone_matrix_creation_vdjdb_fmba_TRA:
+    threads: 40
+    resources: mem="10GB"
+    params: platform='fmba'
+    input: 'data/standardized_usage_matrix_fmba_TRA.csv',
+           f'{config["all_raw_data_path"]}/downsampled_fmba_TRA',
+           'data/vdjdb_TRA_covid_clones.csv'
+    output: 'data/clone_matrix_vdjdb_fmba_TRA_not_processed.csv'
+    script: 'source/clonotypes_matrix_creation.py'
+
+rule fisher_significant_clone_matrix_vdjdb_fmba_TRA:
+    input: 'data/clone_matrix_vdjdb_fmba_TRA_not_processed.csv',
+           'data/vdjdb_TRA_covid_clones.csv'
+    params: platform='fmba'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
 rule create_sample_to_num_of_clones_mapping_fmba_TRA:
     threads: 40
     input: 'data/standardized_usage_matrix_fmba_TRA.csv',
@@ -227,7 +265,7 @@ rule fisher_test_fmba_TRA:
     input: 'data/standardized_usage_matrix_fmba_TRA.csv',
            'data/run_to_number_of_clones_fmba_TRA.csv',
            'data/clone_matrix_fmba_TRA_top_500k.csv'
-    params: platform='fmba', significant_threshold=0.01, drop_test=True
+    params: platform='fmba', significant_threshold=0.01, drop_test=False
     output: 'data/covid_significant_clones_fmba_TRA_top_500k.csv',
             'data/covid_significant_clone_pvals_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
@@ -327,15 +365,15 @@ rule fisher_test_adaptive:
     input: 'data/standardized_usage_matrix_adaptive.csv',
            'data/run_to_number_of_clones_adaptive.csv',
            'data/clone_matrix_adaptive_top_500k.csv'
-    params: platform='adaptive'
+    params: platform='adaptive', significant_threshold=0.01 / 1e6, drop_test=False
     output: 'data/covid_significant_clones_adaptive.csv',
             'data/covid_significant_clone_pvals_adaptive.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
 rule joint_usage_matrix_creation:
     threads: 1
-    input: 'data/standardized_usage_matrix_adaptive.csv',
-            'data/standardized_usage_matrix_fmba_TRB.csv'
+    input: 'data/usage_matrix_adaptive.csv',
+            'data/usage_matrix_fmba_TRB.csv'
     params: gene='TRB',
             platform='joint'
     output: 'data/standardized_usage_matrix_joint.csv', 'data/normalized_usage_matrix_joint.csv'
@@ -347,6 +385,14 @@ rule joint_clonotypes_resampling:
     params: gene='TRB',
             platform='joint'
     output: directory(f'{config["all_raw_data_path"]}/downsampled_joint')
+    script: 'source/downsampling_procedure.py'
+
+rule joint_clonotypes_resampling_50k:
+    threads: 40
+    input: 'data/standardized_usage_matrix_joint.csv'
+    params: gene='TRB',
+            platform='joint_50k'
+    output: directory(f'{config["all_raw_data_path"]}/downsampled_joint_50k')
     script: 'source/downsampling_procedure.py'
 
 rule clone_matrix_creation_joint_fmba_based:
@@ -371,7 +417,7 @@ rule clone_matrix_creation_joint_adaptive_based:
     resources: mem="10GB"
     params: platform='adaptive'
     input: 'data/standardized_usage_matrix_joint.csv',
-           f'{config["all_raw_data_path"]}/downsampled_joint',
+           f'{config["all_raw_data_path"]}/downsampled_joint_50k',
            'data/covid_significant_clones_adaptive.csv'
     output: 'data/clone_matrix_joint_adaptive_based.csv'
     script: 'source/clonotypes_matrix_creation.py'
@@ -393,6 +439,13 @@ rule create_sample_to_num_of_clones_mapping_joint:
     input: 'data/standardized_usage_matrix_joint.csv',
            f'{config["all_raw_data_path"]}/downsampled_joint',
     output: 'data/run_to_number_of_clones_joint.csv'
+    script: 'source/get_sum_clonotypes_per_file.py'
+
+rule create_sample_to_num_of_clones_mapping_joint_50k:
+    threads: 40
+    input: 'data/standardized_usage_matrix_joint.csv',
+           f'{config["all_raw_data_path"]}/downsampled_joint_50k',
+    output: 'data/run_to_number_of_clones_joint_50k.csv'
     script: 'source/get_sum_clonotypes_per_file.py'
 ######################################################################################################################
 
@@ -470,9 +523,43 @@ rule figure_5:
          'data/covid_significant_clone_pvals_adaptive.csv', 'data/covid_adaptive_pgen.csv',
          'data/vdjdb.txt', 'data/run_to_number_of_clones_adaptive.csv', 'data/desc_fmba_not_nan_hla.csv',
          'data/run_to_number_of_clones_joint.csv', 'data/run_to_number_of_clones_fmba_TRB.csv',
-         'data/sign_clone_matrix_joint_fmba_based.csv', 'data/sign_clone_matrix_joint_adaptive_based.csv'
-    output: 'publication-notebooks/fig5.py'
+         'data/sign_clone_matrix_joint_fmba_based.csv', 'data/sign_clone_matrix_joint_adaptive_based.csv',
+         'data/run_to_number_of_clones_joint_50k.csv'
+    output: 'figures/fig5.png'
     shell: '''
             jupyter nbconvert --to python publication-notebooks/fig5.ipynb
+            python publication-notebooks/fig5.py
+            rm publication-notebooks/fig5.py
            '''
 
+rule supplementary_figure_2:
+    threads: 1
+    input: 'data/run_to_number_of_clones_fmba_TRA.csv',
+            'data/standardized_usage_matrix_fmba_TRA.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
+            'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/hla_keys.csv',
+            'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
+            'data/clone_matrix_covid_fmba_TRA_metaclone.csv',
+    output: 'figures/supp_fig2.png'
+    shell: '''
+            jupyter nbconvert --to python publication-notebooks/supp_fig2.ipynb
+            python publication-notebooks/supp_fig2.py
+            rm publication-notebooks/supp_fig2.py
+           '''
+
+rule supplementary_figure_3:
+    threads: 1
+    input: 'data/run_to_number_of_clones_fmba_TRA.csv',
+            'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/desc_fmba_not_nan_hla.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRB_vdjdb.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv',
+            'data/hla_keys.csv', 'data/hla_desc',
+            'publication-notebooks/supp_fig3.ipynb'
+    output: 'figures/supp_fig3.png'
+    shell: '''
+            jupyter nbconvert --to python publication-notebooks/supp_fig3.ipynb
+            python publication-notebooks/supp_fig3.py
+            rm publication-notebooks/supp_fig3.py
+           '''

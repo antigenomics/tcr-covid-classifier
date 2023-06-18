@@ -18,7 +18,7 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save, count_of_c
     run_name = path_to_run.split('/')[-1]
     # print(f'started {run_name} at {datetime.datetime.now()}')
     try:
-        if 'adaptive' in snakemake.params.platform:
+        if '.clonotypes.' not in path_to_run:
             raw_data = pd.read_csv(path_to_run, sep='\t')
         else:
             raw_data = pd.read_csv(path_to_run)
@@ -76,39 +76,52 @@ def update_counts_for_run(path_to_run, run_frequencies, path_to_save, count_of_c
         raw_data[raw_data['count'] > 0].loc[::-1].reset_index(drop=True).to_csv(path_to_save + f'/{run_name}',
                                                                                     index=False)
     except Exception as e:
+        print(e)
         error_list.append(path_to_run)
 
     # print(f'ended {path_to_save}/{run_name} at {datetime.datetime.now()}')
+
+
+def fmba_process_run(run, freqs_to_use, save_path):
+    update_counts_for_run(f'{raw_data_path}/fmba/{run}',
+                          run_frequencies=freqs_to_use,
+                          path_to_save=save_path)
+
+
+def adaptive_process_run(run, freqs_to_use, save_path, count_of_clones_in_sample=None):
+    if 'HIP' in run or 'Keck' in run:
+        update_counts_for_run(f'{raw_data_path}/hip_full/{run}',
+                              run_frequencies=freqs_to_use,
+                              path_to_save=save_path,
+                              count_of_clones_in_sample=count_of_clones_in_sample)
+    else:
+        update_counts_for_run(f'{raw_data_path}/adaptive_new/{run}',
+                              run_frequencies=freqs_to_use,
+                              path_to_save=save_path,
+                              count_of_clones_in_sample=count_of_clones_in_sample)
 
 
 def process_one_file(run):
     run_frequencies = transposed_um[[run]].to_dict()[run]
     freqs_to_use = {x: y for (x, y) in run_frequencies.items() if 'TR' in x}
     if platform == 'fmba':
-        update_counts_for_run(f'{raw_data_path}/{platform}/{run}',
-                              freqs_to_use,
-                              path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}')
+        fmba_process_run(run, freqs_to_use, f'{raw_data_path}/downsampled_{platform}_{gene}')
     elif platform == 'adaptive':
-        if 'HIP' in run or 'Keck' in run:
-            update_counts_for_run(f'{raw_data_path}/hip_full/{run}', freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
-                                  count_of_clones_in_sample=50000)
-        else:
-            update_counts_for_run(f'{raw_data_path}/adaptive_new/{run}', freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_{platform}_{gene}',
-                                  count_of_clones_in_sample=50000)
+        adaptive_process_run(run=run,
+                             freqs_to_use=freqs_to_use,
+                             save_path=f'{raw_data_path}/downsampled_{platform}_{gene}',
+                             count_of_clones_in_sample=50000)
     elif platform == 'joint':
         if '.clonotypes.TRB' in run:
-            update_counts_for_run(f'{raw_data_path}/downsampled_fmba_TRB/{run}',
-                                  freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_joint',
-                                  )
+            fmba_process_run(run, freqs_to_use, f'{raw_data_path}/downsampled_joint')
         else:
-            update_counts_for_run(f'{raw_data_path}/downsampled_adaptive_TRB/{run}',
-                                  freqs_to_use,
-                                  path_to_save=f'{raw_data_path}/downsampled_joint',
-                                  )
-
+            adaptive_process_run(run, freqs_to_use, f'{raw_data_path}/downsampled_joint')
+    elif platform == 'joint_50k':
+        if '.clonotypes.TRB' in run:
+            fmba_process_run(run, freqs_to_use, f'{raw_data_path}/downsampled_joint_50k')
+        else:
+            adaptive_process_run(run, freqs_to_use, f'{raw_data_path}/downsampled_joint_50k',
+                                 count_of_clones_in_sample=50000)
 
 
 def process_all_files():
