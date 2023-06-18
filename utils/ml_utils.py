@@ -138,7 +138,7 @@ def prepare_data(run_to_number_of_clones_path,
     df = df.merge(run_to_number_of_clones)
     for col in df.columns:
         if col != 'run':
-            if make_freq:
+            if make_freq and not make_all_features_bool:
                 df[col] = df[col] / df['number_of_clones']
             elif make_all_features_bool:
                 df[col] = df[col].apply(lambda x: x > 0)
