@@ -113,7 +113,7 @@ def clonotype_matrix_for_projects(projects_list, most_common_clones_path, save_p
 
 if __name__ == "__main__":
     if 'snakemake' in globals():
-        if snakemake.params.platform == 'fmba' or snakemake.params.platform == 'adaptive':
+        if snakemake.params.platform in ['fmba', 'adaptive', 'vdjdb']:
             um = pd.read_csv(snakemake.input[0]).drop(columns=['Unnamed: 0']).fillna(0)
             process_all_files(save_path=snakemake.output[0],
                               most_common_clonotypes=pd.read_csv(snakemake.input[2]).rename(columns={

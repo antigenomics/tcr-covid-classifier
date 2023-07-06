@@ -8,7 +8,7 @@ def create_significant_clonotype_matrix(clonotype_matrix_path, significant_clone
     clone_column = 'clone'
     if clone_column not in significant_clones.columns:
         clone_column = 'cdr3aa'
-    useful_columns = list(significant_clones[clone_column]) + ['run']
+    useful_columns = [x for x in significant_clones[clone_column] if x in clonotype_matrix.columns] + ['run']
     clonotype_matrix[useful_columns].to_csv(save_path)
 
 

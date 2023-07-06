@@ -113,7 +113,9 @@ def adaptive_hip_matrix_creation(hip_desc_path, adaptive_desc_path, raw_path, sa
         chain_to_read='TRB',
         raw_data_path=raw_path
     )
-    pd.concat([adaptive, hip]).to_csv(save_path)
+    bad_coverage_files = pd.read_csv('data/bad_quality_adaptive_runs.csv').run
+    final_data = pd.concat([adaptive, hip])
+    final_data[~final_data.run.isin(bad_coverage_files)].to_csv(save_path)
 
 
 def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path):

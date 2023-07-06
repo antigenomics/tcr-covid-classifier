@@ -1,4 +1,5 @@
 import os
+import random
 from multiprocessing import Manager, Pool
 
 import pandas as pd
@@ -11,6 +12,10 @@ import numpy as np
 
 clone_to_pval = Manager().dict()
 
+
+def prepare_run_column(df):
+    df['run'] = df['run'].apply(lambda x: x.split('.')[0])
+    return df
 
 def get_sum_clones_by_runs(runs=None):
     if runs is None:
@@ -54,7 +59,7 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
     pvals = []
     for clone in tqdm(clonotype_matrix.columns):
         pvals.append(clone_to_pval[clone])
-    if snakemake.params.platform == 'fmba':
+    if 'fmba' in snakemake.params.platform:
         significant_pvals = lsu(np.array(pvals), q=significant_threshold)
     else:
         significant_pvals = hochberg(pvals, alpha=significant_threshold)
@@ -83,7 +88,11 @@ def covid_test_matrix_based(clonotype_matrix, desc_path, save_path,
             columns={'index': 'run'})
     if 'Unnamed: 0' in clonotype_matrix.columns:
         clonotype_matrix = clonotype_matrix.drop(columns=['Unnamed: 0'])
-    clonotype_matrix = clonotype_matrix.merge(desc[['run', marker_column]])
+    clonotype_matrix = prepare_run_column(clonotype_matrix).merge(prepare_run_column(desc[['run', marker_column]]))
+    if sample_random is not None:
+        random.seed(42)
+        sampled_runs = random.sample(set(clonotype_matrix.run), sample_random)
+        clonotype_matrix = clonotype_matrix[clonotype_matrix.run.isin(sampled_runs)]
     print(clonotype_matrix.shape)
     covid_data = clonotype_matrix[clonotype_matrix[marker_column] == marker_column_success_sign]
     healthy_data = clonotype_matrix[clonotype_matrix[marker_column] != marker_column_success_sign]
@@ -95,10 +104,11 @@ def covid_test_matrix_based(clonotype_matrix, desc_path, save_path,
     pd.DataFrame(data={'clone': significant_clones}).to_csv(save_path, index=False)
 
 
-def covid_test_allele_based(save_path, cm, desc_path):
+def covid_test_allele_based(save_path, cm, desc_path, pval_save_path):
     covid_test_matrix_based(clonotype_matrix=cm,
                             desc_path=desc_path,
                             save_path=save_path,
+                            pval_save_path=pval_save_path,
                             fisher=True)
 
 
@@ -148,7 +158,7 @@ def covid_test_for_alpha_chain(n=500000):
 
 def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path, drop_test):
     global run_to_number_of_clonotypes
-    run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
+    run_to_number_of_clonotypes = prepare_run_column(pd.read_csv(run_to_number_of_clones_path)).set_index('run')
 
     covid_test_matrix_based(
         clonotype_matrix=pd.read_csv(clonotype_matrix_path),
@@ -162,7 +172,7 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
 
 def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_folder_path, save_path, hla_keys=None):
     global run_to_number_of_clonotypes
-    run_to_number_of_clonotypes = pd.read_csv(run_to_number_of_clones_path).set_index('run')
+    run_to_number_of_clonotypes = prepare_run_column(pd.read_csv(run_to_number_of_clones_path)).set_index('run')
 
     if hla_keys is None:
         hla_keys = pd.read_csv('data/hla_keys.csv')['0']
@@ -170,7 +180,11 @@ def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_
         print(f'started processing {hla}')
         cm = pd.read_csv(f'{cm_folder_path}/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{hla}.csv')
         desc_path = f'{desc_folder_path}/fmba_desc_hla_{hla}.csv'
-        covid_test_allele_based(save_path + f'/hla_covid_associated_clones_500k_top_1_mismatch_hla_{hla}.csv', cm, desc_path)
+        covid_test_allele_based(save_path + f'/hla_covid_associated_clones_500k_top_1_mismatch_hla_{hla}.csv',
+                                cm,
+                                desc_path,
+                                save_path + f'/hla_covid_associated_clones_1_mismatch_hla_{hla}_pvals.csv'
+                                )
 
 
 if __name__ == "__main__":
@@ -179,8 +193,11 @@ if __name__ == "__main__":
         print(f'Multiple test threshold {significant_threshold}')
         drop_test = snakemake.params.drop_test
         print(f'Test to be dropped: {drop_test}')
-
-        if snakemake.params.platform == 'fmba' or snakemake.params.platform == 'adaptive':
+        platform = snakemake.params.platform.split('-')[0]
+        sample_random = None
+        if 'random' in snakemake.params.platform.split('-'):
+            sample_random = int(snakemake.params.platform.split('-')[-1])
+        if platform == 'fmba' or platform == 'adaptive':
             covid_test_for_fmba(run_to_number_of_clones_path=snakemake.input[1],
                                 clonotype_matrix_path=snakemake.input[2],
                                 um_path=snakemake.input[0],
@@ -188,7 +205,19 @@ if __name__ == "__main__":
                                 pval_save_path=snakemake.output[1],
                                 drop_test=drop_test
                                 )
-        if snakemake.params.platform == 'fmba-allele':
+        if platform == 'vdjdb':
+            run_to_number_of_clonotypes = pd.read_csv(snakemake.input[1]).set_index('run')
+
+            covid_test_matrix_based(
+                clonotype_matrix=pd.read_csv(snakemake.input[2]),
+                desc_path=snakemake.input[0],
+                save_path=snakemake.output[0],
+                pval_save_path=snakemake.output[1],
+                fisher=True,
+                drop_test=drop_test,
+                alternative='two-sided'
+            )
+        if platform == 'fmba-allele':
             hla_keys = snakemake.params.hla_to_consider
             print(hla_keys)
             if not os.path.exists(snakemake.output[0]):

@@ -3,6 +3,7 @@ from scipy.stats import chi2_contingency
 from utils.data_utils import prepare_clonotype_matrix, prepare_run_column
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 
 def evaluate_anova_testing(matrix, by, pvalue_threshold=0.05):
@@ -48,10 +49,18 @@ def evaluate_fisher(clone, no_feature_data, feature_data, run_to_number_of_clono
     return res[1]
 
 
-def get_top_changed_clonotypes(clonotype_matrix, desc, pvals, log_fold_change_threshold, logp_threshold,
+def get_top_changed_clonotypes(clonotype_matrix, desc, pvals, run_to_number_of_clones,
                                healthy_col='covid', healthy_label='healthy'):
     print('v')
-    cm = prepare_run_column(clonotype_matrix).merge(
+    cm = prepare_run_column(clonotype_matrix).merge(prepare_run_column(run_to_number_of_clones))
+    run_col = cm.run
+    cm = cm[[x for x in cm.columns if x not in ['run', 'number_of_clones']]].div(cm.number_of_clones, axis=0)
+    cm['run'] = run_col
+    # for col in tqdm(cm.columns):
+    #     if col in ['run', 'number_of_clones']:
+    #         continue
+    #     cm[col] = cm[col].div(cm['number_of_clones'])
+    cm = cm.merge(
         prepare_run_column(desc[['run', healthy_col]])
     )
 

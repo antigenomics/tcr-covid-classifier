@@ -114,8 +114,10 @@ def prepare_data(run_to_number_of_clones_path,
                  use_standardization=True,
                  raw_target_column='COVID_status',
                  raw_target_clumn_success_label='COVID',
-                 final_target_column='covid', metadata_columns=['is_test_run']):
+                 final_target_column='covid', metadata_columns=['is_test_run'], selected_runs=None):
     run_to_number_of_clones = prepare_run_column(pd.read_csv(run_to_number_of_clones_path))
+    if selected_runs is not None:
+        run_to_number_of_clones = run_to_number_of_clones[run_to_number_of_clones.run.isin(selected_runs)]
     columns_to_save = []
     desc = prepare_run_column(pd.read_csv(desc_path))
     columns_to_save = ['run', raw_target_column] + metadata_columns
@@ -134,7 +136,7 @@ def prepare_data(run_to_number_of_clones_path,
                 df = df.merge(hla_df)
         else:
             raise Exception('HLA keys path essential!')
-
+    df = df.loc[:, (df != 0).any(axis=0)]
     df = df.merge(run_to_number_of_clones)
     for col in df.columns:
         if col != 'run':

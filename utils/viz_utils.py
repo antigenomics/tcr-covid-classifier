@@ -498,6 +498,7 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
               bbox_to_anchor=(legend_x, 1.15),
               frameon=False)
 
+
 def plot_waterfall_by_column(data, proba_column, label_column, ax=None):
     results = data[[label_column, proba_column]].sort_values(by=proba_column)
     results = results.reset_index(drop=True).reset_index()
@@ -650,7 +651,6 @@ def plot_volcano(data, pval_threshold=None, fold_change_threshold=None, selected
     plotting_data_background = data[~data['selected clone']][[fold_change_column, pval_column]].to_numpy().T
     plotting_data = data[(data['selected clone']) & (data[fold_change_column] != np.inf)][
         [fold_change_column, pval_column]].to_numpy().T
-    print(plotting_data)
     plotting_data[:, 1] = -np.log10(plotting_data[:, 1])
 
     plt.scatter(plotting_data_background[0], plotting_data_background[1], alpha=0.4, s=5,
