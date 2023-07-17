@@ -2,13 +2,12 @@ import os
 import random
 from multiprocessing import Manager, Pool
 
-import pandas as pd
-
-from scipy.stats import fisher_exact, binom, chi2_contingency
-from tqdm import tqdm
-from multipy.fwer import hochberg
-from multipy.fdr import lsu
 import numpy as np
+import pandas as pd
+from multipy.fdr import lsu
+from multipy.fwer import hochberg
+from scipy.stats import fisher_exact, binom
+from tqdm import tqdm
 
 clone_to_pval = Manager().dict()
 
@@ -16,6 +15,7 @@ clone_to_pval = Manager().dict()
 def prepare_run_column(df):
     df['run'] = df['run'].apply(lambda x: x.split('.')[0])
     return df
+
 
 def get_sum_clones_by_runs(runs=None):
     if runs is None:
@@ -43,8 +43,6 @@ def process_one_clone_fisher(clone):
     res = fisher_exact([[covid_clone, covid_no_clone], [no_covid_clone, no_covid_no_clone]], alternative=alternative)
 
     clone_to_pval[clone] = res[1]
-    if len(clone_to_pval) > 1135500:
-        print(f'dict size is {len(clone_to_pval)}')
 
 
 def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, fisher=True, alternative='greater'):
@@ -61,6 +59,8 @@ def covid_test(healthy_data, covid_data, clonotype_matrix, pval_save_path=None, 
         pvals.append(clone_to_pval[clone])
     if 'fmba' in snakemake.params.platform:
         significant_pvals = lsu(np.array(pvals), q=significant_threshold)
+        for q in [0.005, 0.01, 0.05, 0.1]:
+            print(f'There are {sum(lsu(np.array(pvals), q=q))} for threshold={q}')
     else:
         significant_pvals = hochberg(pvals, alpha=significant_threshold)
     if pval_save_path is not None:
@@ -78,6 +78,7 @@ def covid_test_matrix_based(clonotype_matrix, desc_path, save_path,
                             marker_column_success_sign='covid', alternative='greater', drop_test=False):
     desc = pd.read_csv(desc_path).drop(columns=['Unnamed: 0'])
     if 'is_test_run' in desc.columns and drop_test:
+        print('test was dropped')
         desc = desc[~desc.is_test_run]
     if platform is not None:
         desc = desc[desc.platform == platform]
@@ -104,12 +105,14 @@ def covid_test_matrix_based(clonotype_matrix, desc_path, save_path,
     pd.DataFrame(data={'clone': significant_clones}).to_csv(save_path, index=False)
 
 
-def covid_test_allele_based(save_path, cm, desc_path, pval_save_path):
+def covid_test_allele_based(save_path, cm, desc_path, pval_save_path, fisher, drop_test, alternative='two-sided'):
     covid_test_matrix_based(clonotype_matrix=cm,
                             desc_path=desc_path,
                             save_path=save_path,
                             pval_save_path=pval_save_path,
-                            fisher=True)
+                            fisher=fisher,
+                            drop_test=drop_test,
+                            alternative=alternative)
 
 
 def covid_test_for_beta_chain_adaptive(n=500000):
@@ -156,7 +159,8 @@ def covid_test_for_alpha_chain(n=500000):
         fisher=True)
 
 
-def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path, drop_test):
+def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_path, save_path, pval_save_path,
+                        drop_test):
     global run_to_number_of_clonotypes
     run_to_number_of_clonotypes = prepare_run_column(pd.read_csv(run_to_number_of_clones_path)).set_index('run')
 
@@ -170,7 +174,8 @@ def covid_test_for_fmba(run_to_number_of_clones_path, clonotype_matrix_path, um_
     )
 
 
-def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_folder_path, save_path, hla_keys=None):
+def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_folder_path, save_path, fisher,
+                             drop_test, alternative, hla_keys=None):
     global run_to_number_of_clonotypes
     run_to_number_of_clonotypes = prepare_run_column(pd.read_csv(run_to_number_of_clones_path)).set_index('run')
 
@@ -183,7 +188,10 @@ def test_for_all_hla_alleles(run_to_number_of_clones_path, cm_folder_path, desc_
         covid_test_allele_based(save_path + f'/hla_covid_associated_clones_500k_top_1_mismatch_hla_{hla}.csv',
                                 cm,
                                 desc_path,
-                                save_path + f'/hla_covid_associated_clones_1_mismatch_hla_{hla}_pvals.csv'
+                                save_path + f'/hla_covid_associated_clones_1_mismatch_hla_{hla}_pvals.csv',
+                                fisher=fisher,
+                                drop_test=drop_test,
+                                alternative=alternative
                                 )
 
 
@@ -206,7 +214,8 @@ if __name__ == "__main__":
                                 drop_test=drop_test
                                 )
         if platform == 'vdjdb':
-            run_to_number_of_clonotypes = pd.read_csv(snakemake.input[1]).set_index('run')
+            run_to_number_of_clonotypes = prepare_run_column(
+                pd.read_csv(snakemake.input[1])).set_index('run')
 
             covid_test_matrix_based(
                 clonotype_matrix=pd.read_csv(snakemake.input[2]),
@@ -217,7 +226,7 @@ if __name__ == "__main__":
                 drop_test=drop_test,
                 alternative='two-sided'
             )
-        if platform == 'fmba-allele':
+        if platform == 'allele':
             hla_keys = snakemake.params.hla_to_consider
             print(hla_keys)
             if not os.path.exists(snakemake.output[0]):
@@ -226,4 +235,7 @@ if __name__ == "__main__":
                                      run_to_number_of_clones_path=snakemake.input[0],
                                      cm_folder_path=snakemake.input[2],
                                      desc_folder_path=snakemake.input[1],
-                                     save_path=snakemake.output[0])
+                                     save_path=snakemake.output[0],
+                                     fisher=True,
+                                     drop_test=drop_test,
+                                     alternative='two-sided')

@@ -6,6 +6,7 @@ import pandas as pd
 from multipy.fwer import hochberg
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import fisher_exact
+from multipy.fdr import lsu
 
 random.seed(42)
 
@@ -112,7 +113,7 @@ def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gen
         y = count
         pvals.append(fisher_exact([[x, trb_in_vdjdb - x], [y, len(res_beta) - y]], alternative='less')[1])
     if len(pvals) > 1:
-        sign = hochberg(pvals, alpha=alpha)
+        sign = lsu(np.array(pvals), q=alpha)
     else:
         sign = [pvals[0] < alpha]
     return epitopes[sign] if len(epitopes[sign]) > 0 else None

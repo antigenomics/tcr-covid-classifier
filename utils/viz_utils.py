@@ -474,7 +474,7 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
     ax.grid(which='minor')
 
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='2%', pad=1.75)
+    cax = divider.append_axes('right', size='1%', pad=1)
     cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
     # cbar.set_label('fraction of α-β co-occured pairs')
     cax.yaxis.set_ticks_position('left')
@@ -483,13 +483,14 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
 
     ax.set_xlabel('α cluster index')
     ax.set_ylabel('β cluster index')
+    ax.tick_params(labelrotation=30)
 
     line1 = plt.Line2D([], [], color="white", marker='o', markersize=8, markerfacecolor="slategray")
     line2 = plt.Line2D([], [], color="white", marker='o', markersize=11, markerfacecolor="slategray")
     line3 = plt.Line2D([], [], color="white", marker='o', markersize=14, markerfacecolor="slategray")
     line4 = plt.Line2D([], [], color="white", marker='o', markersize=18, markerfacecolor="slategray")
     line5 = plt.Line2D([], [], color="white", marker='o', markersize=21, markerfacecolor="slategray")
-    ax.legend((line3, line5),
+    ax.legend((line2, line4),
               ('0', '1'),
               numpoints=1,
               loc=1,
@@ -543,6 +544,7 @@ def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
         fig, (ax) = plt.subplots()
     plot_clusters_of_clonotypes(res, color_by=color_by, ax=ax)
     used_centers = set()
+    cluster_num_to_epi_abbreviation_mapping = {}
     for k, v in cluster_to_epi.items():
         if v is not None:
             my_epi = v[~v['antigen.species'].str.contains('apiens')].reset_index(drop=True)
@@ -589,9 +591,11 @@ def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
                                     arrowprops={
                                         'arrowstyle': '->',
                                     })
+                    cluster_num_to_epi_abbreviation_mapping[k] = create_epitope_name(epitope, vdjdb)
     ax.set_xlim(-600, 600)
     ax.set_ylim(-600, 600)
     ax.axis('off')
+    return cluster_num_to_epi_abbreviation_mapping
 
 
 def volcano_plot(clonotype_matrix_path, desc_path, pvals, healthy_col='covid', healthy_label='healthy',

@@ -26,4 +26,5 @@ os.mkdir(snakemake.output[1])
 for hla in hla_to_patients:
     current_subdata = desc_fmba[desc_fmba.run.isin(hla_to_patients[hla])].reset_index(drop=True)
     current_subdata['covid'] = current_subdata.COVID_status.apply(lambda x: 'covid' if x == 'COVID' else 'healthy')
+    current_subdata['is_test_run'] = current_subdata.folder.str.lower().str.contains('novaseq6')
     current_subdata.to_csv(f'{snakemake.output[1]}/fmba_desc_hla_{hla}.csv')

@@ -2,10 +2,13 @@ import os
 from multiprocessing import Manager, Pool
 
 import pandas as pd
+import numpy as np
 
 from scipy.stats import fisher_exact, binom, chi2_contingency
 from tqdm import tqdm
 from multipy.fwer import hochberg
+from multipy.fdr import lsu
+
 
 clone_to_pval = Manager().dict()
 
@@ -38,7 +41,7 @@ def process_one_clone_fisher(clone):
 
 
 def hla_test(hla_data, no_hla_data, clonotype_matrix, fisher=True):
-    arguments = [(x, no_hla_data, hla_data, i) for i, x in enumerate(clonotype_matrix.columns)]
+    arguments = [(x, no_hla_data[['run', x]], hla_data[['run', x]], i) for i, x in enumerate(clonotype_matrix.columns)]
     with Pool(40) as p:
         if fisher:
             p.map(process_one_clone_fisher, arguments)
@@ -47,7 +50,7 @@ def hla_test(hla_data, no_hla_data, clonotype_matrix, fisher=True):
     pvals = []
     for clone in tqdm(clonotype_matrix.columns):
         pvals.append(clone_to_pval[clone])
-    significant_pvals = hochberg(pvals, alpha=0.05)
+    significant_pvals = lsu(np.array(pvals), q=0.05)
     significant_clones = []
     for pval, clone in zip(significant_pvals, clonotype_matrix.columns):
         if pval:

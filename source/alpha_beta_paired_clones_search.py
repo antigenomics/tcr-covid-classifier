@@ -94,14 +94,17 @@ def plot_cooccured_epitopes_table(res_alpha, res_beta, cooccurence_dist1_epitope
         for alpha_cluster in res_alpha.cluster.unique():
             if len(cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]) > 0:
                 for e in cooccurence_dist1_epitopes[beta_cluster][alpha_cluster]:
-                    alpha_index.append(alpha_cluster)
-                    beta_index.append(beta_cluster)
-                    epi.append(e)
-                    species.append(list(vdjdb[vdjdb['antigen.epitope'] == e]['antigen.species'])[0])
+                    antigen_species = list(vdjdb[vdjdb['antigen.epitope'] == e]['antigen.species'])[0]
+                    if antigen_species != 'HomoSapiens':
+                        alpha_index.append(alpha_cluster)
+                        beta_index.append(beta_cluster)
+                        epi.append(e)
+                        species.append(antigen_species)
 
     df = pd.DataFrame(data={'alpha_cluster': alpha_index, 'beta_cluster': beta_index,
                             'epitope': epi, 'antigen_species': species})
     plot_pandas_df_into_png(df, output_path=save_path, ax=ax)
+    return df
 
 
 def evaluate_value_for_alpha_beta(alpha, beta):
