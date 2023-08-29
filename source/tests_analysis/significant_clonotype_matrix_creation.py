@@ -79,8 +79,27 @@ if __name__ == "__main__":
             create_significant_clonotype_matrix(clonotype_matrix_path=snakemake.input[0],
                                                 significant_clones_path=snakemake.input[1],
                                                 save_path=snakemake.output[0])
+        if snakemake.params.platform == 'allele':
+            if snakemake.params.hla_to_consider == []:
+                hla_keys = snakemake.params.hla_to_consider
+            else:
+                hla_keys = pd.read_csv('data/hla_keys.csv')['0']
+            print(hla_keys)
+            import os
+
+            if not os.path.exists(snakemake.output[0]):
+                os.mkdir(snakemake.output[0])
+            for hla in hla_keys:
+                create_significant_clonotype_matrix(
+                    clonotype_matrix_path=f'{snakemake.input[1]}/clonotype_matrix_500k_1_mismatch_top_fmba_hla_{hla}.csv',
+                    significant_clones_path=f'{snakemake.input[0]}/hla_associated_clones_500k_top_1_mismatch_hla_{hla}.csv',
+                    save_path=f'{snakemake.output[0]}/hla_covid_clonotype_matrix_500k_top_1_mismatch_hla_{hla}.csv'
+                )
         if snakemake.params.platform == 'fmba-allele':
-            hla_keys = snakemake.params.hla_to_consider
+            if snakemake.params.hla_to_consider == []:
+                hla_keys = snakemake.params.hla_to_consider
+            else:
+                hla_keys = pd.read_csv('data/hla_keys.csv')['0']
             print(hla_keys)
             import os
             if not os.path.exists(snakemake.output[0]):

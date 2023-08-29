@@ -218,3 +218,27 @@ def create_summary_stats_table(clustering_res, cluster_to_epi, cm, vdjdb, test_b
 
     summary.to_excel(f'figures/clustering_summary_{gene}.xlsx')
     summary.to_csv(f'figures/clustering_summary_{gene}.csv')
+
+
+if __name__ == "__main__":
+    alpha_cluster = 29
+    beta_cluster = 2
+
+    clean_beta_cm = pd.read_csv('../data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv').drop(
+        columns=['Unnamed: 0'])
+    covid_clones_beta = clean_beta_cm.columns[1:]
+    res_beta = seqs2hamming(covid_clones_beta, viz_method='drl')
+
+    clean_alpha_cm = pd.read_csv('../data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv').drop(
+        columns=['Unnamed: 0'])
+    covid_clones_alpha = clean_alpha_cm.columns[1:]
+    res_alpha = seqs2hamming(covid_clones_alpha, viz_method='drl')
+
+    vdjdb = pd.read_csv('../data/vdjdb.txt', sep='\t')
+    ab_vdjdb = pd.read_csv('../data/vdjdb_full.txt', sep='\t')
+
+    alpha_epi = set(get_epitopes_for_cluster(vdjdb, res_alpha, alpha_cluster, dist=1)['antigen.epitope'])
+    beta_epi = set(get_epitopes_for_cluster(vdjdb, res_beta, beta_cluster, dist=1)['antigen.epitope'])
+
+    intersected_epi = alpha_epi.intersection(beta_epi)
+

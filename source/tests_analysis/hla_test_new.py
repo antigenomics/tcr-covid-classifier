@@ -88,7 +88,10 @@ def hla_test_allele_based(allele, hla_desc_path, clone_matrix_path, save_path, f
 
 if __name__ == "__main__":
     run_to_number_of_clonotypes = pd.read_csv(snakemake.input[0]).set_index('run')
-    hla_keys = snakemake.params.hla_to_consider
+    if snakemake.params.hla_to_consider != []:
+        hla_keys = snakemake.params.hla_to_consider
+    else:
+        hla_keys = pd.read_csv('data/hla_keys.csv')['0']
     print(hla_keys)
     if not os.path.exists(snakemake.output[0]):
         os.mkdir(snakemake.output[0])

@@ -227,7 +227,10 @@ if __name__ == "__main__":
                 alternative='two-sided'
             )
         if platform == 'allele':
-            hla_keys = snakemake.params.hla_to_consider
+            if snakemake.params.hla_to_consider == []:
+                hla_keys = snakemake.params.hla_to_consider
+            else:
+                hla_keys = pd.read_csv('data/hla_keys.csv')['0']
             print(hla_keys)
             if not os.path.exists(snakemake.output[0]):
                 os.mkdir(snakemake.output[0])

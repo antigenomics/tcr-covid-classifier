@@ -69,26 +69,27 @@ def standardize_usage_matrix_log_exp(usage_matrix: pd.DataFrame, annotation_colu
     log_stand_usage_matrix = standardize_usage_matrix_log(usage_matrix, annotation_columns)
     for name in log_stand_usage_matrix.columns:
         if 'TR' in name:
-            a = 1
             b = norm_usage_matrix[name].mean()
             log_stand_usage_matrix[name] = log_stand_usage_matrix[name].apply(lambda x: 2 * b * logistic.cdf(x))
-    return log_stand_usage_matrix
+    return normalize_usage_matrix_by_rows(log_stand_usage_matrix)
 
 
 def prepare_usage_matrix(usage_matrix: pd.DataFrame,
                          annotation_columns=['run', 'project', 'covid', 'hla', 'number_of_clonotypes'],
                          standardize_method=None):
     norm_usage_matrix = normalize_usage_matrix_by_rows(usage_matrix)
+    annotation = usage_matrix[annotation_columns]
     normalized_usage_matrix = usage_matrix[annotation_columns]
     for col in norm_usage_matrix.columns:
         normalized_usage_matrix.loc[:, col] = norm_usage_matrix[col]
     if standardize_method is not None:
         normalized_usage_matrix = standardize_method(normalized_usage_matrix, annotation_columns)
+        normalized_usage_matrix = pd.concat([annotation, normalized_usage_matrix], axis=1)
     return normalized_usage_matrix
 
 
-def create_usage_matrices_for_fmba_beta():
-    suffix = 'fmba_TRB'
+def create_usage_matrices_for_fmba_beta(gene_type='v'):
+    suffix = f'fmba_TRB_{gene_type}'
     usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0'])
     norm_um = prepare_usage_matrix(usage_matrix)
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
@@ -96,8 +97,8 @@ def create_usage_matrices_for_fmba_beta():
         f'data/standardized_usage_matrix_{suffix}_wo_test_runs.csv')
 
 
-def create_usage_matrices_for_fmba_alpha():
-    suffix = 'fmba_TRA'
+def create_usage_matrices_for_fmba_alpha(gene_type='v'):
+    suffix = f'fmba_TRA_{gene_type}'
     usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0'])
     norm_um = prepare_usage_matrix(usage_matrix)
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
@@ -105,8 +106,8 @@ def create_usage_matrices_for_fmba_alpha():
         f'data/standardized_usage_matrix_{suffix}_wo_test_runs.csv')
 
 
-def create_usage_matrices_for_adaptive():
-    suffix = 'adaptive'
+def create_usage_matrices_for_adaptive(gene_type='v'):
+    suffix = f'adaptive_{gene_type}'
     usage_matrix = pd.read_csv(f'data/usage_matrix_{suffix}.csv').drop(columns=['Unnamed: 0']).dropna(axis=1)
     norm_um = prepare_usage_matrix(usage_matrix, annotation_columns=['run', 'project', 'covid'])
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
@@ -134,12 +135,12 @@ def create_usage_matrices_for_functional():
             f'../data/standardized_log_exp_usage_matrix_{suffix}.csv')
 
 
-def create_joint_TRB_adaptive_fmba_um():
-    suffix = 'joint'
-    adaptive_stand_um = pd.read_csv('data/usage_matrix_adaptive.csv').drop(columns=['Unnamed: 0'])
-    fmba_stand_um = pd.read_csv('data/usage_matrix_fmba_TRB.csv').drop(columns=['Unnamed: 0'])
-    joint_um = pd.concat([fmba_stand_um, adaptive_stand_um])
-    joint_um = joint_um[['run', 'project', 'covid'] + [x for x in joint_um.columns if x.startswith('TRB')]].fillna(0)
+def create_joint_TRB_adaptive_fmba_um(gene_type='v'):
+    suffix = f'joint_{gene_type}'
+    adaptive_stand_um = pd.read_csv(f'data/usage_matrix_adaptive_{gene_type}.csv').drop(columns=['Unnamed: 0'])
+    fmba_stand_um = pd.read_csv(f'data/usage_matrix_fmba_TRB_{gene_type}.csv').drop(columns=['Unnamed: 0'])
+    joint_um = pd.concat([fmba_stand_um, adaptive_stand_um]).reset_index(drop=True)
+    joint_um = joint_um[['run', 'project', 'covid'] + [x for x in joint_um.columns if x.startswith('TR')]].fillna(0)
     norm_um = prepare_usage_matrix(joint_um, annotation_columns=['run', 'project', 'covid'])
     norm_um.to_csv(f'data/normalized_usage_matrix_{suffix}.csv')
     prepare_usage_matrix(joint_um, standardize_method=standardize_usage_matrix_log_exp,
@@ -151,11 +152,11 @@ if __name__ == "__main__":
     if 'snakemake' in globals():
         if snakemake.params.gene == 'TRB':
             if snakemake.params.platform == 'fmba':
-                create_usage_matrices_for_fmba_beta()
+                create_usage_matrices_for_fmba_beta(snakemake.params.gene_type)
             elif snakemake.params.platform == 'adaptive':
-                create_usage_matrices_for_adaptive()
+                create_usage_matrices_for_adaptive(snakemake.params.gene_type)
             elif snakemake.params.platform == 'joint':
-                create_joint_TRB_adaptive_fmba_um()
+                create_joint_TRB_adaptive_fmba_um(snakemake.params.gene_type)
         if snakemake.params.gene == 'TRA':
             if snakemake.params.platform == 'fmba':
-                create_usage_matrices_for_fmba_alpha()
+                create_usage_matrices_for_fmba_alpha(snakemake.params.gene_type)

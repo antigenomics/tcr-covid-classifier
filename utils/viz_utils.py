@@ -485,19 +485,19 @@ def plot_cooccurence_heatmap_with_epitopes_labeling_bubble(plotting_df, annot_df
     ax.set_ylabel('β cluster index')
     ax.tick_params(labelrotation=30)
 
-    line1 = plt.Line2D([], [], color="white", marker='o', markersize=8, markerfacecolor="slategray")
-    line2 = plt.Line2D([], [], color="white", marker='o', markersize=11, markerfacecolor="slategray")
-    line3 = plt.Line2D([], [], color="white", marker='o', markersize=14, markerfacecolor="slategray")
-    line4 = plt.Line2D([], [], color="white", marker='o', markersize=18, markerfacecolor="slategray")
-    line5 = plt.Line2D([], [], color="white", marker='o', markersize=21, markerfacecolor="slategray")
-    ax.legend((line2, line4),
-              ('0', '1'),
-              numpoints=1,
-              loc=1,
-              title='# epitopes',
-              labelspacing=1.5,
-              bbox_to_anchor=(legend_x, 1.15),
-              frameon=False)
+    # line1 = plt.Line2D([], [], color="white", marker='o', markersize=8, markerfacecolor="slategray")
+    # line2 = plt.Line2D([], [], color="white", marker='o', markersize=11, markerfacecolor="slategray")
+    # line3 = plt.Line2D([], [], color="white", marker='o', markersize=14, markerfacecolor="slategray")
+    # line4 = plt.Line2D([], [], color="white", marker='o', markersize=18, markerfacecolor="slategray")
+    # line5 = plt.Line2D([], [], color="white", marker='o', markersize=21, markerfacecolor="slategray")
+    # ax.legend((line2, line4),
+    #           ('0', '1'),
+    #           numpoints=1,
+    #           loc=1,
+    #           title='# epitopes',
+    #           labelspacing=1.5,
+    #           bbox_to_anchor=(legend_x, 1.15),
+    #           frameon=False)
 
 
 def plot_waterfall_by_column(data, proba_column, label_column, ax=None):
