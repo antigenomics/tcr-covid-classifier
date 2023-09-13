@@ -21,6 +21,7 @@ from sklearn.preprocessing import Normalizer
 from utils.clustering_utils import get_most_frequent_cluster_by_vdjdb_occurence
 from utils.data_utils import prepare_clonotype_matrix, prepare_run_column
 
+import matplotlib.gridspec as gridspec
 
 def plot_usage_matrix_pca(usage_matrix: pd.DataFrame, method=PCA, n_components=2, target=None, plot_gradient=False,
                           figsize=(12, 5), ax=None):
@@ -217,6 +218,58 @@ def plot_clustermap_axes_based(usage_matrix, genes=['TRBV28', 'TRBV4-3', 'TRBV6-
 
 
 from scipy.stats import mannwhitneyu, linregress
+class SeabornFig2Grid():
+
+    def __init__(self, seaborngrid, fig,  subplot_spec):
+        self.fig = fig
+        self.sg = seaborngrid
+        self.subplot = subplot_spec
+        if isinstance(self.sg, sns.axisgrid.FacetGrid) or \
+            isinstance(self.sg, sns.axisgrid.PairGrid):
+            self._movegrid()
+        elif isinstance(self.sg, sns.axisgrid.JointGrid):
+            self._movejointgrid()
+        self._finalize()
+
+    def _movegrid(self):
+        """ Move PairGrid or Facetgrid """
+        self._resize()
+        n = self.sg.axes.shape[0]
+        m = self.sg.axes.shape[1]
+        self.subgrid = gridspec.GridSpecFromSubplotSpec(n,m, subplot_spec=self.subplot)
+        for i in range(n):
+            for j in range(m):
+                self._moveaxes(self.sg.axes[i,j], self.subgrid[i,j])
+
+    def _movejointgrid(self):
+        """ Move Jointgrid """
+        h= self.sg.ax_joint.get_position().height
+        h2= self.sg.ax_marg_x.get_position().height
+        r = int(np.round(h/h2))
+        self._resize()
+        self.subgrid = gridspec.GridSpecFromSubplotSpec(r+1,r+1, subplot_spec=self.subplot)
+
+        self._moveaxes(self.sg.ax_joint, self.subgrid[1:, :-1])
+        self._moveaxes(self.sg.ax_marg_x, self.subgrid[0, :-1])
+        self._moveaxes(self.sg.ax_marg_y, self.subgrid[1:, -1])
+
+    def _moveaxes(self, ax, gs):
+        #https://stackoverflow.com/a/46906599/4124317
+        ax.remove()
+        ax.figure=self.fig
+        self.fig.axes.append(ax)
+        self.fig.add_axes(ax)
+        ax._subplotspec = gs
+        ax.set_position(gs.get_position(self.fig))
+        ax.set_subplotspec(gs)
+
+    def _finalize(self):
+        plt.close(self.sg.fig)
+        self.fig.canvas.mpl_connect("resize_event", self._resize)
+        self.fig.canvas.draw()
+
+    def _resize(self, evt=None):
+        self.sg.fig.set_size_inches(self.fig.get_size_inches())
 
 
 def significant_clones_distribution(significant_clonotype_matrix, run_to_number_of_clones, desc, data_description,
@@ -539,7 +592,8 @@ def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
                                                     color_by='cluster',
                                                     cluster_size_threshold=0, dist_to_center=500,
                                                     center_diff_threshold=50, gene='TRB', ax=None,
-                                                    global_zero_based=True):
+                                                    global_zero_based=True,
+                                                    species_to_plot=None):
     if ax is None:
         fig, (ax) = plt.subplots()
     plot_clusters_of_clonotypes(res, color_by=color_by, ax=ax)
@@ -549,49 +603,44 @@ def plot_clonotype_clustering_with_epitope_labeling(res, cluster_to_epi, vdjdb,
         if v is not None:
             my_epi = v[~v['antigen.species'].str.contains('apiens')].reset_index(drop=True)
             if len(my_epi) > 0:
-                most_freq_epi = get_most_frequent_cluster_by_vdjdb_occurence(vdjdb, my_epi, gene=gene)
-                epitope = most_freq_epi[['antigen.epitope', 'antigen.species']][0]
-                species = most_freq_epi[['antigen.epitope', 'antigen.species']][1]
-                cluster_center_x = list(res[res.cluster == k].x_mean)[0]
-                cluster_center_y = list(res[res.cluster == k].y_mean)[0]
-                cluster_size = list(res[res.cluster == k].cluster_size)[0]
-                if cluster_size > cluster_size_threshold and 'SARS-CoV-2' == species:
-                    dist_from_zero = sqrt(cluster_center_x ** 2 + cluster_center_y ** 2)
-                    sinus_value = cluster_center_x / dist_from_zero
-                    cosinus_value = cluster_center_y / dist_from_zero
+                for epitope, species in zip(my_epi['antigen.epitope'], my_epi['antigen.species']):
+                    if species_to_plot is not None and species not in species_to_plot:
+                        continue
+                    cluster_center_x = list(res[res.cluster == k].x_mean)[0]
+                    cluster_center_y = list(res[res.cluster == k].y_mean)[0]
+                    cluster_size = list(res[res.cluster == k].cluster_size)[0]
+                    if cluster_size > cluster_size_threshold:
+                        dist_from_zero = sqrt(cluster_center_x ** 2 + cluster_center_y ** 2)
+                        sinus_value = cluster_center_x / dist_from_zero
+                        cosinus_value = cluster_center_y / dist_from_zero
 
-                    if global_zero_based:
-                        new_dist_to_plot = dist_to_center
-                        if cluster_center_x < 0:
-                            new_dist_to_plot += 100
-                        new_point_x, new_point_y = new_dist_to_plot * sinus_value, new_dist_to_plot * cosinus_value
-                        center_diff = get_closest_delta(used_centers, (new_point_x, new_point_y))
+                        if global_zero_based:
+                            new_dist_to_plot = dist_to_center
+                            if cluster_center_x < 0:
+                                new_dist_to_plot += 100
+                            new_point_x, new_point_y = new_dist_to_plot * sinus_value, new_dist_to_plot * cosinus_value
+                            center_diff = get_closest_delta(used_centers, (new_point_x, new_point_y))
 
-                        if center_diff < center_diff_threshold:
-                            # angle_value = asin(cluster_center_x / dist_from_zero)
-                            # if cluster_center_y < 0:
-                            #     angle_value = 2 * pi - angle_value
-                            # dist_from_zero = sqrt(new_point_x ** 2 + new_point_y ** 2)
-                            # new_angle = pi / 9 + angle_value + adjust_asin(cluster_center_x, cluster_center_y)
-                            # new_point_x, new_point_y = (new_dist_to_plot + 120) * sin(new_angle), (
-                            #             new_dist_to_plot + 120) * cos(new_angle)
-                            new_point_x = new_point_x + 100 * (1 if new_point_y < 0 else -1)
-                            print(epitope)
-                        used_centers.add((new_point_x, new_point_y))
-                        ax.annotate(create_epitope_name(epitope, vdjdb),
-                                    xy=(cluster_center_x, cluster_center_y),
-                                    xytext=(new_point_x, new_point_y),
-                                    arrowprops={
-                                        'arrowstyle': '->',
-                                    })
-                    else:
-                        ax.annotate(create_epitope_name(epitope, vdjdb),
-                                    xy=(cluster_center_x, cluster_center_y),
-                                    xytext=(cluster_center_x + 2 * dist_to_center, cluster_center_y - dist_to_center),
-                                    arrowprops={
-                                        'arrowstyle': '->',
-                                    })
-                    cluster_num_to_epi_abbreviation_mapping[k] = create_epitope_name(epitope, vdjdb)
+                            if center_diff < center_diff_threshold:
+                                new_point_x = new_point_x - 200 * (1 if new_point_x < 0 else -1)
+                                new_point_y = new_point_y - 200 * (1 if new_point_y < 0 else -1)
+                                print(epitope)
+                            used_centers.add((new_point_x, new_point_y))
+                            ax.annotate(create_epitope_name(epitope, vdjdb),
+                                        xy=(cluster_center_x, cluster_center_y),
+                                        xytext=(new_point_x, new_point_y),
+                                        bbox=dict(boxstyle='round,pad=0.2', fc='green' if species == 'SARS-CoV-2' else 'red', alpha=0.1),
+                                        arrowprops={
+                                            'arrowstyle': '->',
+                                        })
+                        else:
+                            ax.annotate(create_epitope_name(epitope, vdjdb),
+                                        xy=(cluster_center_x, cluster_center_y),
+                                        xytext=(cluster_center_x + 2 * dist_to_center, cluster_center_y - dist_to_center),
+                                        arrowprops={
+                                            'arrowstyle': '->',
+                                        })
+                        cluster_num_to_epi_abbreviation_mapping[k] = create_epitope_name(epitope, vdjdb)
     ax.set_xlim(-600, 600)
     ax.set_ylim(-600, 600)
     ax.axis('off')
@@ -640,7 +689,7 @@ def make_different_colors(all_points, points):
 
 
 def plot_volcano(data, pval_threshold=None, fold_change_threshold=None, selected_clones=None, pval_column='pval',
-                 fold_change_column='log_fold_change', ax=None):
+                 fold_change_column='log_fold_change', ax=None, pval_plotting_threshold=None):
     if ax is None:
         fig, ax = plt.subplots()
     if pval_threshold is not None and fold_change_threshold is not None:
@@ -648,12 +697,12 @@ def plot_volcano(data, pval_threshold=None, fold_change_threshold=None, selected
             lambda row: True if row[fold_change_column] > fold_change_threshold and row[pval_column] < pval_threshold else False, axis=1)
     if selected_clones is not None:
         data['selected clone'] = data.clone.apply(lambda x: x in selected_clones)
-    all_data_np = data[(data[fold_change_column] != np.inf) & (data[fold_change_column] > 1)][
-        [fold_change_column, pval_column]].dropna().to_numpy().T
-    all_data_np[~np.isfinite(all_data_np)] = 0
-
-    plotting_data_background = data[~data['selected clone']][[fold_change_column, pval_column]].to_numpy().T
-    plotting_data = data[(data['selected clone']) & (data[fold_change_column] != np.inf)][
+    if pval_plotting_threshold is not None:
+        data_to_plot = data[data[pval_column] < pval_plotting_threshold]
+    else:
+        data_to_plot = data
+    plotting_data_background = data_to_plot[~data_to_plot['selected clone']][[fold_change_column, pval_column]].to_numpy().T
+    plotting_data = data_to_plot[(data_to_plot['selected clone']) & (data_to_plot[fold_change_column] != np.inf)][
         [fold_change_column, pval_column]].to_numpy().T
     plotting_data[:, 1] = -np.log10(plotting_data[:, 1])
 

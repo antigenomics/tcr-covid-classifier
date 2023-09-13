@@ -11,6 +11,7 @@ rule all:
     'figures/supp_fig2.png',
     'figures/supp_fig3.png'
 
+# TODO
 rule preprocess_metadata:
     input: 'data/fmba_2021.txt'
     output: 'data/preprocessed_fmba_metadata.csv'
@@ -18,8 +19,8 @@ rule preprocess_metadata:
 
 rule fmba_beta_usage_matrix_creation_v:
     threads: 1
-    input: f'{config["fmba_desc"]}'
-    params: desc_path=f'{config["fmba_desc"]}',
+    input: f'{config["fmba_desc_beta"]}'
+    params: desc_path=f'{config["fmba_desc_beta"]}',
             raw_data_path=f'{config["all_raw_data_path"]}',
             gene='TRB',
             platform='fmba',
@@ -29,8 +30,8 @@ rule fmba_beta_usage_matrix_creation_v:
 
 rule fmba_beta_usage_matrix_creation_j:
     threads: 1
-    input: f'{config["fmba_desc"]}'
-    params: desc_path=f'{config["fmba_desc"]}',
+    input: f'{config["fmba_desc_beta"]}'
+    params: desc_path=f'{config["fmba_desc_beta"]}',
             raw_data_path=f'{config["all_raw_data_path"]}',
             gene='TRB',
             platform='fmba',
@@ -153,21 +154,31 @@ rule fisher_test_fmba_TRB:
             'data/covid_significant_clone_pvals_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
+rule fisher_test_fmba_TRB_wo_test:
+    threads: 40
+    input: 'data/standardized_usage_matrix_fmba_TRB_v.csv',
+           'data/run_to_number_of_clones_fmba_TRB.csv',
+           'data/clone_matrix_fmba_TRB_top_500k.csv'
+    params: platform='fmba', significant_threshold=0.05, drop_test=True
+    output: 'data/covid_significant_clones_fmba_TRB_top_500k_wo_test.csv',
+            'data/covid_significant_clone_pvals_fmba_TRB_top_500k_wo_test.csv'
+    script: 'source/tests_analysis/covid_test_250k.py'
+
 rule fisher_test_fmba_TRB_random:
     threads: 40
     input: 'data/standardized_usage_matrix_fmba_TRB_v.csv',
            'data/run_to_number_of_clones_fmba_TRB.csv',
            'data/clone_matrix_fmba_TRB_top_500k.csv'
-    params: platform='fmba-random-488', significant_threshold=0.01, drop_test=False
-    output: 'data/covid_significant_clones_fmba_TRB_random_488.csv',
-            'data/covid_significant_clone_pvals_fmba_TRB_random_488.csv'
+    params: platform='fmba-random-521', significant_threshold=0.01, drop_test=False
+    output: 'data/covid_significant_clones_fmba_TRB_random_521.csv',
+            'data/covid_significant_clone_pvals_fmba_TRB_random_521.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
 rule fisher_significant_clone_matrix_fmba_TRB_random:
     input: 'data/clone_matrix_fmba_TRB_top_500k.csv',
-           'data/covid_significant_clones_fmba_TRB_random_488.csv'
+           'data/covid_significant_clones_fmba_TRB_random_521.csv'
     params: platform='fmba'
-    output: 'data/significant_clone_matrix_fisher_fmba_TRB_random_488.csv'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRB_random_521.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
 rule fisher_test_fmba_TRB_vdjdb:
@@ -187,9 +198,21 @@ rule fisher_significant_clone_matrix_fmba_TRB:
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
+rule fisher_significant_clone_matrix_fmba_TRB_wo_test:
+    input:  'data/clone_matrix_fmba_TRB_top_500k.csv',
+           'data/covid_significant_clones_fmba_TRB_top_500k_wo_test.csv'
+    params: platform='fmba'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_test.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
 rule olga_pgen_generation_fmba_TRB:
     input: 'data/covid_significant_clones_fmba_TRB_top_500k.csv'
     output: 'data/covid_fmba_TRB_pgen.csv'
+    shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
+
+rule olga_pgen_generation_fmba_TRB_wo_test:
+    input: 'data/covid_significant_clones_fmba_TRB_top_500k_wo_test.csv'
+    output: 'data/covid_fmba_TRB_pgen_wo_test.csv'
     shell: 'olga-compute_pgen --humanTRB -i {input} > {output}'
 
 rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
@@ -200,45 +223,64 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB:
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
     script: 'source/leaks_deletion.py'
 
+rule fisher_significant_clone_matrix_wo_leaks_fmba_TRB_wo_test:
+    input: 'data/clone_matrix_fmba_TRB_top_500k.csv',
+            'data/covid_fmba_TRB_pgen_wo_test.csv',
+            'data/run_to_number_of_clones_fmba_TRB.csv'
+    params: pgen_threshold=1e-9, preal_threshold=1e-6
+    output: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks_wo_test.csv',
+    script: 'source/leaks_deletion.py'
+
 rule create_cluster_bool_matrix_TRB:
     input: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv'
     params: gene='TRB'
     output: 'data/cluster_presence_matrix_TRB.csv'
     script: 'source/make_cluster_usage_table.py'
 ########################################################################################################################
-rule create_hla_desc_files:
-    input: 'data/desc_fmba_not_nan_hla.csv'
-    output: 'data/hla_keys.csv', directory('data/hla_desc')
+# TODO
+# rule create_hla_desc_files:
+#     input: 'data/desc_fmba_not_nan_hla.csv'
+#     output: 'data/hla_keys.csv', directory('data/hla_desc')
+#     script: 'source/create_hla_description_files.py'
+
+rule create_hla_desc_files_beta:
+    input: config['fmba_desc_beta']
+    output: 'data/hla_keys_beta.csv', directory('data/hla_desc_beta')
+    script: 'source/create_hla_description_files.py'
+
+rule create_hla_desc_files_alpha:
+    input: config['fmba_desc_alpha']
+    output: 'data/hla_keys_alpha.csv', directory('data/hla_desc_alpha')
     script: 'source/create_hla_description_files.py'
 
 rule hla_specific_clones_extraction_TRB:
     threads: 2
     resources: mem="10GB"
-    input: 'data/hla_desc', 'data/standardized_usage_matrix_fmba_TRB_v.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
+    input: 'data/hla_desc_beta', 'data/standardized_usage_matrix_fmba_TRB_v.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
     params: platform='fmba-allele',
             hla_to_consider=config['allele_names'],
-    output: directory('data/hla_most_used_clones')
+    output: directory('data/hla_most_used_clones_TRB')
     script: 'source/clonotypes_extraction_procedure.py'
 
 
 rule hla_specific_clones_extraction_TRA:
     threads: 2
     resources: mem="10GB"
-    input: 'data/hla_desc', 'data/standardized_usage_matrix_fmba_TRA_v.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRA'
+    input: 'data/hla_desc_alpha', 'data/standardized_usage_matrix_fmba_TRA_v.csv', f'{config["all_raw_data_path"]}/downsampled_fmba_TRA'
     params: platform='fmba-allele',
             hla_to_consider=config['allele_names'],
     output: directory('data/hla_most_used_clones_TRA')
     script: 'source/clonotypes_extraction_procedure.py'
 
 rule hla_clone_matrix_creation_TRB:
-    threads: 40
+    threads: 55
     resources: mem="100GB"
     params: platform='fmba-allele',
             hla_to_consider=config['allele_names'],
     input: 'data/standardized_usage_matrix_fmba_TRB_v.csv',
-           'data/hla_most_used_clones',
+           'data/hla_most_used_clones_TRB',
             f'{config["all_raw_data_path"]}/downsampled_fmba_TRB'
-    output: directory('data/hla_clonotype_matrices')
+    output: directory('data/hla_clonotype_matrices_TRB')
     script: 'source/clonotypes_matrix_creation.py'
 
 rule hla_clone_matrix_creation_TRA:
@@ -256,9 +298,9 @@ rule hla_associatiated_clones_search_TRB:
     threads: 55
     params: hla_to_consider=config['allele_names'],
     input: 'data/run_to_number_of_clones_fmba_TRB.csv',
-            'data/hla_desc',
-            'data/hla_clonotype_matrices',
-    output: directory('data/hla_associated_clones')
+            'data/hla_desc_beta',
+            'data/hla_clonotype_matrices_TRB',
+    output: directory('data/hla_associated_clones_TRB')
     script: 'source/tests_analysis/hla_test_new.py'
 
 
@@ -266,14 +308,14 @@ rule hla_associatiated_clones_search_TRA:
     threads: 55
     params: hla_to_consider=config['allele_names'],
     input: 'data/run_to_number_of_clones_fmba_TRA.csv',
-            'data/hla_desc',
+            'data/hla_desc_alpha',
             'data/hla_clonotype_matrices_TRA',
     output: directory('data/hla_associated_clones_TRA')
     script: 'source/tests_analysis/hla_test_new.py'
 
 rule hla_significant_usage_matrix_creation_TRB:
-    input:  'data/hla_associated_clones',
-            'data/hla_clonotype_matrices',
+    input:  'data/hla_associated_clones_TRB',
+            'data/hla_clonotype_matrices_TRB',
     params: platform='allele',
             hla_to_consider=config['allele_names'],
     output: directory('data/hla_clone_matrix_TRB')
@@ -288,13 +330,14 @@ rule hla_significant_usage_matrix_creation_TRA:
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
 rule hla_based_covid_associated_TRB_clones_search:
-    threads: 40
+    threads: 55
     params: hla_to_consider=config['allele_names'],
             platform='allele-fmba', significant_threshold=0.05, drop_test=False
     input: 'data/run_to_number_of_clones_fmba_TRB.csv',
-            'data/hla_desc',
-            'data/hla_clonotype_matrices',
-    output: directory('data/hla_covid_associated_clones')
+            'data/hla_desc_beta',
+            'data/hla_clonotype_matrices_TRB',
+    output: directory('data/hla_covid_associated_clones_TRB'),
+            'data/hla_covid_associated_clones_TRB/hla_covid_associated_clones_500k_top_1_mismatch_hla_A*02.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
 rule hla_based_covid_associated_TRA_clones_search:
@@ -302,23 +345,24 @@ rule hla_based_covid_associated_TRA_clones_search:
     params: hla_to_consider=config['allele_names'],
             platform='allele-fmba', significant_threshold=0.05, drop_test=False
     input: 'data/run_to_number_of_clones_fmba_TRA.csv',
-            'data/hla_desc',
+            'data/hla_desc_alpha',
             'data/hla_clonotype_matrices_TRA',
-    output: directory('data/hla_covid_associated_clones_TRA')
+    output: directory('data/hla_covid_associated_clones_TRA'),
+            'data/hla_covid_associated_clones_TRA/hla_covid_associated_clones_500k_top_1_mismatch_hla_A*02.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
-rule hla_covid_significant_usage_matrix_creation_TRB:
-    input:  'data/hla_associated_clones',
-            'data/hla_covid_associated_clones',
-            'data/hla_clonotype_matrices',
+rule hla_covid_significant_clone_matrix_creation_TRB:
+    input:  'data/hla_associated_clones_TRB',
+            'data/hla_covid_associated_clones_TRB',
+            'data/hla_clonotype_matrices_TRB',
     params: platform='fmba-allele',
             hla_to_consider=config['allele_names'],
-    output: directory('data/hla_sign_clone_matrix')
+    output: directory('data/hla_sign_clone_matrix_TRB')
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
 rule create_a02_significant_covid_clone_matrix_TRB:
     input:  'data/clone_matrix_fmba_TRB_top_500k.csv',
-           'data/hla_covid_associated_clones/hla_covid_associated_clones_500k_top_1_mismatch_hla_A*02.csv'
+           'data/hla_covid_associated_clones_TRB/hla_covid_associated_clones_500k_top_1_mismatch_hla_A*02.csv'
     params: platform='fmba'
     output: 'data/significant_clone_matrix_fisher_fmba_TRB_A02.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
@@ -366,8 +410,8 @@ rule fmba_alpha_usage_matrix_test_column_creation_j:
 
 rule fmba_alpha_usage_matrix_creation_v:
     threads: 1
-    input: f'{config["fmba_desc"]}'
-    params: desc_path=f'{config["fmba_desc"]}',
+    input: f'{config["fmba_desc_alpha"]}'
+    params: desc_path=f'{config["fmba_desc_alpha"]}',
             raw_data_path=f'{config["all_raw_data_path"]}',
             gene='TRA',
             platform='fmba',
@@ -377,8 +421,8 @@ rule fmba_alpha_usage_matrix_creation_v:
 
 rule fmba_alpha_usage_matrix_creation_j:
     threads: 1
-    input: f'{config["fmba_desc"]}'
-    params: desc_path=f'{config["fmba_desc"]}',
+    input: f'{config["fmba_desc_alpha"]}'
+    params: desc_path=f'{config["fmba_desc_alpha"]}',
             raw_data_path=f'{config["all_raw_data_path"]}',
             gene='TRA',
             platform='fmba',
@@ -449,14 +493,24 @@ rule fisher_test_fmba_TRA:
             'data/covid_significant_clone_pvals_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
+rule fisher_test_fmba_TRA_wo_test:
+    threads: 40
+    input: 'data/standardized_usage_matrix_fmba_TRA_v.csv',
+           'data/run_to_number_of_clones_fmba_TRA.csv',
+           'data/clone_matrix_fmba_TRA_top_500k.csv'
+    params: platform='fmba', significant_threshold=0.01, drop_test=True
+    output: 'data/covid_significant_clones_fmba_TRA_top_500k_wo_test.csv',
+            'data/covid_significant_clone_pvals_fmba_TRA_top_500k_wo_test.csv'
+    script: 'source/tests_analysis/covid_test_250k.py'
+
 rule fisher_test_fmba_TRA_random:
     threads: 40
     input: 'data/standardized_usage_matrix_fmba_TRA_v.csv',
            'data/run_to_number_of_clones_fmba_TRA.csv',
            'data/clone_matrix_fmba_TRA_top_500k.csv'
-    params: platform='fmba-random-488', significant_threshold=0.01, drop_test=False
-    output: 'data/covid_significant_clones_fmba_TRA_random_488.csv',
-            'data/covid_significant_clone_pvals_fmba_TRA_random_488.csv'
+    params: platform='fmba-random-545', significant_threshold=0.01, drop_test=False
+    output: 'data/covid_significant_clones_fmba_TRA_random_545.csv',
+            'data/covid_significant_clone_pvals_fmba_TRA_random_545.csv'
     script: 'source/tests_analysis/covid_test_250k.py'
 
 rule fisher_test_fmba_TRA_vdjdb:
@@ -476,16 +530,28 @@ rule fisher_significant_clone_matrix_fmba_TRA:
     output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
+rule fisher_significant_clone_matrix_fmba_TRA_wo_test:
+    input: 'data/clone_matrix_fmba_TRA_top_500k.csv',
+           'data/covid_significant_clones_fmba_TRA_top_500k_wo_test.csv'
+    params: platform='fmba'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_test.csv'
+    script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
+
 rule fisher_significant_clone_matrix_fmba_TRA_random:
     input: 'data/clone_matrix_fmba_TRA_top_500k.csv',
-           'data/covid_significant_clones_fmba_TRA_random_488.csv'
+           'data/covid_significant_clones_fmba_TRA_random_545.csv'
     params: platform='fmba'
-    output: 'data/significant_clone_matrix_fisher_fmba_TRA_random_488.csv'
+    output: 'data/significant_clone_matrix_fisher_fmba_TRA_random_545.csv'
     script: 'source/tests_analysis/significant_clonotype_matrix_creation.py'
 
 rule olga_pgen_generation_fmba_TRA:
     input: 'data/covid_significant_clones_fmba_TRA_top_500k.csv'
     output: 'data/covid_fmba_TRA_pgen.csv'
+    shell: 'olga-compute_pgen --humanTRA -i {input} > {output}'
+
+rule olga_pgen_generation_fmba_TRA_wo_test:
+    input: 'data/covid_significant_clones_fmba_TRA_top_500k_wo_test.csv'
+    output: 'data/covid_fmba_TRA_pgen_wo_test.csv'
     shell: 'olga-compute_pgen --humanTRA -i {input} > {output}'
 
 rule fisher_significant_clone_matrix_wo_leaks_fmba_TRA:
@@ -494,6 +560,14 @@ rule fisher_significant_clone_matrix_wo_leaks_fmba_TRA:
             'data/run_to_number_of_clones_fmba_TRA.csv'
     params: pgen_threshold=1e-9, preal_threshold=1e-6
     output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
+    script: 'source/leaks_deletion.py'
+
+rule fisher_significant_clone_matrix_wo_leaks_fmba_TRA_wo_test:
+    input: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_test.csv',
+            'data/covid_fmba_TRA_pgen_wo_test.csv',
+            'data/run_to_number_of_clones_fmba_TRA.csv'
+    params: pgen_threshold=1e-9, preal_threshold=1e-6
+    output: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks_wo_test.csv',
     script: 'source/leaks_deletion.py'
 
 rule create_cluster_bool_matrix_TRA:
@@ -532,6 +606,11 @@ rule TRA_TRB_correlation_analysis:
             'data/run_to_number_of_clones_fmba_TRB.csv',
             'data/run_to_number_of_clones_fmba_TRA.csv'
     output: 'data/cluster_correlations.csv', 'figures/cluster_correlation_clustermap.png'
+    shell: '''
+        jupyter nbconvert --to python notebooks/correlation_alpha_beta_analysis.ipynb
+        python notebooks/correlation_alpha_beta_analysis.py
+        rm notebooks/correlation_alpha_beta_analysis.py
+       '''
 ######################################################################################################################
 rule adaptive_usage_matrix_creation_v:
     threads: 1
@@ -736,12 +815,88 @@ rule create_raw_data_reads_distribution_fmba:
     script: 'source/get_sum_clonotypes_per_file.py'
 
 ######################################################################################################################
+rule get_associations_fmba_alpha:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_TRA_sign_assoc.csv',
+            'figures/associations/fmba_TRA_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRA', prefix='fmba', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_fmba_beta:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_TRB_sign_assoc.csv',
+            'figures/associations/fmba_TRB_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRB', prefix='fmba', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_adaptive_beta:
+    threads: 55
+    input: 'data/sign_clone_matrix_joint_adaptive_based.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/adaptive_TRB_sign_assoc.csv',
+            'figures/associations/adaptive_TRB_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRB', prefix='adaptive', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_adaptive_joint:
+    threads: 55
+    input: 'data/sign_clone_matrix_joint_adaptive_based.csv',
+           'data/sign_clone_matrix_joint_fmba_based.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/joint_TRB_sign_assoc.csv',
+            'figures/associations/joint_TRB_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRB', prefix='joint', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_fmba_alpha_a02:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRA_A02.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_a02_TRA_sign_assoc.csv',
+            'figures/associations/fmba_a02_TRA_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRA', prefix='fmba_a02', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_fmba_beta_a02:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRB_A02.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_a02_TRB_sign_assoc.csv',
+            'figures/associations/fmba_a02_TRB_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRB', prefix='fmba_a02', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_fmba_alpha_wo_test:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks_wo_test.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_wo_test_TRA_sign_assoc.csv',
+            'figures/associations/fmba_wo_test_TRA_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRA', prefix='fmba_wo_test', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+rule get_associations_fmba_beta_wo_test:
+    threads: 55
+    input: 'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks_wo_test.csv',
+           'data/vdjdb.txt'
+    output: 'figures/associations/fmba_wo_test_TRB_sign_assoc.csv',
+            'figures/associations/fmba_wo_test_TRB_sign_assoc_with_max_enrichment.csv'
+    params: gene='TRB', prefix='fmba_wo_test', working_directory='figures/associations'
+    script: 'source/significant_annotation_for_clusters.py'
+
+
+######################################################################################################################
 
 rule figure_1:
     threads: 1
     input: 'data/desc_fmba_not_nan_hla.csv', 'data/fmba_2021.txt', 'data/desc_fmba_new_split.csv',
          'data/standardized_usage_matrix_fmba_TRB_v.csv', 'data/normalized_usage_matrix_fmba_TRB_v.csv',
          'data/standardized_usage_matrix_fmba_TRA_v.csv', 'data/normalized_usage_matrix_fmba_TRA_v.csv',
+         'data/run_to_number_of_clones_fmba_TRB.csv', 'data/run_to_number_of_clones_fmba_TRA.csv',
          'publication-notebooks/fig1.ipynb'
     output: 'figures/fig1.png'
     shell: '''
@@ -765,6 +920,8 @@ rule figure_2:
             'data/alpha_beta_paired_epitopes.csv',
             'data/standardized_usage_matrix_fmba_TRB_v.csv',
             'data/standardized_usage_matrix_fmba_TRA_v.csv',
+            'data/alpha_beta_paired_epitopes_by_full_db.csv',
+            'data/cluster_correlations.csv',
             'publication-notebooks/fig2.ipynb'
     output: 'figures/fig2.png'
     shell: '''
@@ -775,7 +932,7 @@ rule figure_2:
 
 rule figure_3:
     threads: 1
-    input: 'data/hla_sign_clone_matrix',
+    input: 'data/hla_sign_clone_matrix_TRB',
             'data/desc_fmba_not_nan_hla.csv',
             'data/run_to_number_of_clones_fmba_TRB.csv',
             'publication-notebooks/fig3.ipynb'
@@ -796,7 +953,7 @@ rule figure_4:
             'data/hla_keys.csv',
             'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
             'data/clone_matrix_covid_fmba_TRA_metaclone.csv',
-            'data/hla_desc',
+            'data/hla_desc_beta', 'data/hla_desc_alpha',
             'publication-notebooks/fig4.ipynb'
     output: 'figures/fig4.png'
     shell: '''
@@ -812,7 +969,8 @@ rule figure_5:
          'data/vdjdb.txt', 'data/run_to_number_of_clones_adaptive.csv', 'data/desc_fmba_not_nan_hla.csv',
          'data/run_to_number_of_clones_joint.csv', 'data/run_to_number_of_clones_fmba_TRB.csv',
          'data/sign_clone_matrix_joint_fmba_based.csv', 'data/sign_clone_matrix_joint_adaptive_based.csv',
-         'data/run_to_number_of_clones_joint_50k.csv'
+         'data/run_to_number_of_clones_joint_50k.csv',
+         'publication-notebooks/fig5.ipynb',
     output: 'figures/fig5.png'
     shell: '''
             jupyter nbconvert --to python publication-notebooks/fig5.ipynb
@@ -824,13 +982,16 @@ rule figure_6:
     threads: 1
     input: 'data/run_to_number_of_clones_fmba_TRA.csv',
             'data/standardized_usage_matrix_fmba_TRA_v.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRA_random_488.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_random_545.csv',
             'data/hla_keys.csv',
             'data/run_to_number_of_clones_fmba_TRB.csv',
-            'data/significant_clone_matrix_fisher_fmba_TRB_random_488.csv',
-            'data/hla_desc/fmba_desc_hla_A*02.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRB_random_521.csv',
+            'data/hla_desc_beta/fmba_desc_hla_A*02.csv',
+            'data/hla_desc_alpha/fmba_desc_hla_A*02.csv',
             'data/significant_clone_matrix_fisher_fmba_TRB_A02.csv',
             'data/significant_clone_matrix_fisher_fmba_TRA_A02.csv',
+            'publication-notebooks/fig6.ipynb',
+
     output: 'figures/fig6.png'
     shell: '''
             jupyter nbconvert --to python publication-notebooks/fig6.ipynb
@@ -847,6 +1008,8 @@ rule supplementary_figure_2:
             'data/hla_keys.csv',
             'data/clone_matrix_covid_fmba_TRB_metaclone.csv',
             'data/clone_matrix_covid_fmba_TRA_metaclone.csv',
+            'publication-notebooks/supp_fig2.ipynb',
+
     output: 'figures/supp_fig2.png'
     shell: '''
             jupyter nbconvert --to python publication-notebooks/supp_fig2.ipynb
@@ -861,7 +1024,7 @@ rule supplementary_figure_3:
             'data/desc_fmba_not_nan_hla.csv',
             'data/significant_clone_matrix_fisher_fmba_TRB_vdjdb.csv',
             'data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv',
-            'data/hla_keys.csv', 'data/hla_desc',
+            'data/hla_keys.csv', 'data/hla_desc_beta', 'data/hla_desc_alpha',
             'publication-notebooks/supp_fig3.ipynb',
             'data/covid_significant_clone_pvals_fmba_TRA_vdjdb.csv',
             'data/covid_significant_clone_pvals_fmba_TRB_vdjdb.csv'
@@ -871,3 +1034,25 @@ rule supplementary_figure_3:
             python publication-notebooks/supp_fig3.py
             rm publication-notebooks/supp_fig3.py
            '''
+
+
+rule supplementary_figure_5:
+    threads: 1
+    input: 'data/vdjdb.txt', 'data/desc_fmba_not_nan_hla.csv',
+           'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_test.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRB_top_500k_wo_leaks_wo_test.csv',
+            'data/covid_fmba_TRB_pgen_wo_test.csv',
+            'data/run_to_number_of_clones_fmba_TRB.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_test.csv',
+            'data/significant_clone_matrix_fisher_fmba_TRA_top_500k_wo_leaks_wo_test.csv',
+            'data/covid_fmba_TRA_pgen_wo_test.csv',
+            'data/run_to_number_of_clones_fmba_TRA.csv',
+            'data/standardized_usage_matrix_fmba_TRB_v.csv',
+            'data/standardized_usage_matrix_fmba_TRA_v.csv',
+            'publication-notebooks/supp_fig5.ipynb'
+    output: 'figures/supp_fig5.png'
+    shell: '''
+        jupyter nbconvert --to python publication-notebooks/supp_fig5.ipynb
+        python publication-notebooks/supp_fig5.py
+        rm publication-notebooks/supp_fig5.py
+       '''

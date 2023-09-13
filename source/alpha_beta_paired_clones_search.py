@@ -1,9 +1,10 @@
-import os,sys,inspect
+import os
+import sys
+
 print(os.getcwd())
 sys.path.append(os.getcwd())
 
-
-from utils.clustering_utils import check_significant_epitopes_for_cluster, seqs2hamming
+from utils.clustering_utils import seqs2hamming, read_association_data
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ from tqdm import tqdm
 from multiprocessing import Manager, Pool
 from utils.data_utils import prepare_clonotype_matrix
 from utils.viz_utils import plot_pandas_df_into_png
+
 clone_to_df = Manager().dict()
 
 
@@ -111,8 +113,8 @@ def evaluate_value_for_alpha_beta(alpha, beta):
     beta_ind = f'TRB_cluster_{beta}'
     alpha_ind = f'TRA_cluster_{alpha}'
     df = beta_cluster_presence[['run', beta_ind]].merge(
-            alpha_cluster_presence[['run', alpha_ind]]).drop(
-                columns=['run'])
+        alpha_cluster_presence[['run', alpha_ind]]).drop(
+        columns=['run'])
     df['joint'] = df.apply(lambda x: 1 if x[beta_ind] + x[alpha_ind] == 2 else 0, axis=1)
     return df['joint'].sum() / (df[beta_ind].sum() + df[alpha_ind].sum() - df['joint'].sum())
 
@@ -131,14 +133,14 @@ def alpha_beta_joint_usage_matrix_preparation(tra_cm_path, trb_cm_path, vdjdb_pa
             cooccurence90[beta_cluster][alpha_cluster] = evaluate_value_for_alpha_beta(alpha_cluster, beta_cluster)
 
     beta_epitopes_dist_1 = {}
-    for cluster in tqdm(res_beta.cluster.unique()):
-        test_results = check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gene='TRB')
-        beta_epitopes_dist_1[cluster] = set(test_results['antigen.epitope']) if test_results is not None else set()
+    assoc_beta = read_association_data('figures/associations/fmba_TRB_sign_assoc.csv')
+    for x in range(res_beta.cluster.max() + 1):
+        beta_epitopes_dist_1[x] = set(assoc_beta[x]['antigen.epitope']) if x in assoc_beta else set()
 
     alpha_epitopes_dist_1 = {}
-    for cluster in tqdm(res_alpha.cluster.unique()):
-        test_results = check_significant_epitopes_for_cluster(vdjdb, res_alpha, cluster, dist=1, gene='TRA')
-        alpha_epitopes_dist_1[cluster] = set(test_results['antigen.epitope']) if test_results is not None else set()
+    assoc_alpha = read_association_data('figures/associations/fmba_TRA_sign_assoc.csv')
+    for x in range(res_alpha.cluster.max() + 1):
+        alpha_epitopes_dist_1[x] = set(assoc_alpha[x]['antigen.epitope']) if x in assoc_alpha else set()
 
     cooccurence_dist1_epitopes = [[set() for _ in range(res_alpha.cluster.max() + 1)] for _ in
                                   range(res_beta.cluster.max() + 1)]

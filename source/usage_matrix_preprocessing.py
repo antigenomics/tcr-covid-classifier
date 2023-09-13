@@ -75,7 +75,7 @@ def standardize_usage_matrix_log_exp(usage_matrix: pd.DataFrame, annotation_colu
 
 
 def prepare_usage_matrix(usage_matrix: pd.DataFrame,
-                         annotation_columns=['run', 'project', 'covid', 'hla', 'number_of_clonotypes'],
+                         annotation_columns=['run', 'project', 'covid'],
                          standardize_method=None):
     norm_usage_matrix = normalize_usage_matrix_by_rows(usage_matrix)
     annotation = usage_matrix[annotation_columns]

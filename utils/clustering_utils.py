@@ -7,6 +7,8 @@ from multipy.fwer import hochberg
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import fisher_exact
 from multipy.fdr import lsu
+from multiprocessing import Pool, Manager
+from tqdm import trange
 
 random.seed(42)
 
@@ -80,10 +82,11 @@ def check_distance(cdr1, cdr2, dist=1):
 
 
 def check_db_epitopes_cdr3(db, cdr3, dist=1):
-    return db[db.cdr3.apply(lambda x: check_distance(x, cdr3, dist))][['antigen.epitope', 'antigen.species']]
+    return db[db.cdr3.apply(lambda x: check_distance(x, cdr3, dist))][['antigen.epitope', 'antigen.species']].drop_duplicates()
 
 
 def get_epitopes_for_beta_clone(vdjdb, beta_cdr3, dist=1):
+    # print(len(vdjdb))
     beta_epitopes = check_db_epitopes_cdr3(vdjdb, beta_cdr3, dist=dist)
     return beta_epitopes.drop_duplicates()  # .merge(alpha_epitopes).drop_duplicates()
 
@@ -98,11 +101,71 @@ def get_epitopes_for_cluster(vdjdb, clones_to_cluster, cluster, dist=1):
     return res.groupby(['antigen.epitope', 'antigen.species'], as_index=False).count().sort_values(by='count')
 
 
-def get_count_of_antigen_associated_clones(vdjdb, antigen, chain='TRB'):
+def get_count_of_antigen_associated_clones(vdjdb, antigen, chain='TRB', res_beta=None):
+    number_of_matches = 0
+    if res_beta is not None:
+        for clone in res_beta.cdr3:
+            if antigen in set(get_epitopes_for_beta_clone(vdjdb[vdjdb['antigen.epitope'] == antigen], clone)['antigen.epitope']):
+                number_of_matches += 1
+        return number_of_matches
     return len(vdjdb[(vdjdb.gene == chain) & (vdjdb['antigen.epitope'] == antigen)]), len(vdjdb[(vdjdb.gene == chain)])
 
 
-def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, dist=1, gene='TRB', alpha=0.05):
+def check_significant_epitopes_for_cluster(vdjdb, res_beta, cluster, known_epitopes, dist=1, gene='TRB', alpha=0.05, threads=32):
+    global check_one_epitope_significance
+    # TODO
+    def check_one_epitope_significance(args):
+        epi, count, overall_trb, cluster_trb, gene= args
+        if epi in known_epitopes:
+            x = known_epitopes[epi]
+        else:
+            x = get_count_of_antigen_associated_clones(vdjdb, epi, res_beta=res_beta, chain=gene)
+            known_epitopes[epi] = x
+        y = count
+        # print([[x, overall_trb - x], [y, cluster_trb - y]])
+        assert y <= x
+        pvals[epi] = fisher_exact([[x, overall_trb - x], [y, cluster_trb - y]], alternative='less')[1]
+
+    epitopes = get_epitopes_for_cluster(vdjdb, res_beta, cluster, dist)
+    overall_trb = len(res_beta)
+    cluster_trb = len(res_beta[res_beta.cluster == cluster])
+    pvals = Manager().dict()
+    if len(epitopes) == 0:
+        return None
+    arguments = []
+    for epi, count in zip(epitopes['antigen.epitope'], epitopes['count']):
+        arguments.append([epi, count, overall_trb, cluster_trb, gene])
+    with Pool(threads, maxtasksperchild=2) as p:
+        p.map(check_one_epitope_significance, arguments)
+    pvals_res = []
+    for epi in epitopes['antigen.epitope']:
+        pvals_res.append(pvals[epi])
+    epitopes['pval'] = pd.Series(pvals_res)
+    if len(pvals_res) > 1:
+        sign = lsu(np.array(pvals_res), q=alpha)
+    else:
+        sign = [pvals_res[0] < alpha]
+    return epitopes[sign] if len(epitopes[sign]) > 0 else None
+
+
+def check_significant_epitopes_for_all_clusters(res, vdjdb, gene, alpha, threads, dir_to_save='data/fmba_associations'):
+    # print('newnew!')
+    cluster_to_epi = {}
+    known_epitopes = Manager().dict()
+    for cluster_index in trange(res.cluster.max() + 1):
+        cluster_to_epi[cluster_index] = check_significant_epitopes_for_cluster(vdjdb, res, cluster_index,
+                                                                                    dist=1, gene=gene, alpha=alpha,
+                                                                                    threads=threads,
+                                                                                    known_epitopes=known_epitopes)
+        if cluster_to_epi[cluster_index] is not None and dir_to_save is not None:
+            cluster_to_epi[cluster_index].to_csv(f'{dir_to_save}/{gene}_cluster_{cluster_index}.csv')
+    if dir_to_save is not None:
+        pd.DataFrame.from_dict(known_epitopes, orient='index').reset_index().to_csv(f'{dir_to_save}/{gene}_epitopes.csv')
+    return cluster_to_epi, known_epitopes
+
+
+def check_significant_epitopes_for_cluster_vdjdb_based(vdjdb, res_beta, cluster, dist=1, gene='TRB', alpha=0.05):
+    # TODO
     epitopes = get_epitopes_for_cluster(vdjdb, res_beta, cluster, dist)
     trb_in_vdjdb = len(vdjdb[vdjdb.gene.str.contains(gene)]['antigen.epitope'])
     pvals = []
@@ -218,6 +281,14 @@ def create_summary_stats_table(clustering_res, cluster_to_epi, cm, vdjdb, test_b
 
     summary.to_excel(f'figures/clustering_summary_{gene}.xlsx')
     summary.to_csv(f'figures/clustering_summary_{gene}.csv')
+
+
+def read_association_data(path):
+    df = pd.read_csv(path).drop(columns=['Unnamed: 0'])
+    cluster_to_epi = {}
+    for cluster in df.cluster.unique():
+        cluster_to_epi[cluster] = df[df.cluster == cluster]
+    return cluster_to_epi
 
 
 if __name__ == "__main__":

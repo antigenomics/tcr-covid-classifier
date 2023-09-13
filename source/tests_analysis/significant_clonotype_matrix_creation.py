@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     save_path=f'{snakemake.output[0]}/hla_covid_clonotype_matrix_500k_top_1_mismatch_hla_{hla}.csv'
                 )
         if snakemake.params.platform == 'fmba-allele':
-            if snakemake.params.hla_to_consider == []:
+            if snakemake.params.hla_to_consider != []:
                 hla_keys = snakemake.params.hla_to_consider
             else:
                 hla_keys = pd.read_csv('data/hla_keys.csv')['0']
@@ -105,6 +105,7 @@ if __name__ == "__main__":
             if not os.path.exists(snakemake.output[0]):
                 os.mkdir(snakemake.output[0])
             for hla in hla_keys:
+                print(hla)
                 joint_clones = pd.read_csv(
                     f'{snakemake.input[0]}/hla_associated_clones_500k_top_1_mismatch_hla_{hla}.csv').merge(
                     pd.read_csv(

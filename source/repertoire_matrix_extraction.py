@@ -130,7 +130,7 @@ def run_alpha_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path, 
                        'dataset': 'folder'},
         raw_data_path=raw_data_path,
         dataset='fmba',
-        get_extra_info=True,
+        get_extra_info=False,
         chain_to_read='TRA',
         gene_type=gene_type
     ).to_csv(output_path)
@@ -144,7 +144,7 @@ def run_beta_chain_fmba_matrix_creation(desc_path, output_path, raw_data_path, g
                        'dataset': 'folder'},
         raw_data_path=raw_data_path,
         dataset='fmba',
-        get_extra_info=True,
+        get_extra_info=False,
         chain_to_read='TRB',
         gene_type=gene_type
     ).to_csv(output_path)
@@ -179,7 +179,7 @@ def run_beta_chain_fmba_matrix_creation_functional_nonfunctional():
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
         dataset='fmba_2021',
-        get_extra_info=True,
+        get_extra_info=False,
         chain_to_read='TRB',
         functional_seqs_type='functional'
     ).to_csv('../data/usage_matrix_functional.csv')
@@ -189,7 +189,7 @@ def run_beta_chain_fmba_matrix_creation_functional_nonfunctional():
                        'covid': 'COVID_status',
                        'dataset': 'folder'},
         dataset='fmba_2021',
-        get_extra_info=True,
+        get_extra_info=False,
         chain_to_read='TRB',
         functional_seqs_type='nonfunctional'
     ).to_csv('../data/usage_matrix_nonfunctional.csv')

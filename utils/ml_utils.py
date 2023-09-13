@@ -111,6 +111,7 @@ def prepare_data(run_to_number_of_clones_path,
                  use_hla_bool=True,
                  make_all_features_bool=False,
                  make_all_features_categorial=False,
+                 normalize_by_number_of_clones=True,
                  use_standardization=True,
                  raw_target_column='COVID_status',
                  raw_target_clumn_success_label='COVID',
@@ -120,7 +121,7 @@ def prepare_data(run_to_number_of_clones_path,
         run_to_number_of_clones = run_to_number_of_clones[run_to_number_of_clones.run.isin(selected_runs)]
     columns_to_save = []
     desc = prepare_run_column(pd.read_csv(desc_path))
-    columns_to_save = ['run', raw_target_column] + metadata_columns
+    columns_to_save = list(set(['run', raw_target_column] + metadata_columns))
     desc = desc[columns_to_save]
     desc = desc[desc[raw_target_column] != 'unknown']
     desc[raw_target_column] = desc[raw_target_column].apply(lambda x: 1 if raw_target_clumn_success_label == x else 0)
@@ -140,7 +141,7 @@ def prepare_data(run_to_number_of_clones_path,
     df = df.merge(run_to_number_of_clones)
     for col in df.columns:
         if col != 'run':
-            if make_freq and not make_all_features_bool:
+            if make_freq and not make_all_features_bool and normalize_by_number_of_clones:
                 df[col] = df[col] / df['number_of_clones']
             elif make_all_features_bool:
                 df[col] = df[col].apply(lambda x: x > 0)

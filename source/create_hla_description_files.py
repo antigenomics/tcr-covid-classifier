@@ -2,7 +2,7 @@ from collections import defaultdict
 import pandas as pd
 
 desc_fmba = pd.read_csv(snakemake.input[0])
-desc_fmba = desc_fmba[desc_fmba['run'].str.contains('TRB')].rename(columns={'file.name': 'run'})
+# desc_fmba = desc_fmba[desc_fmba['run'].str.contains('TRB')].rename(columns={'file.name': 'run'})
 
 hla_to_patients = defaultdict(set)
 for hla_variant in ['HLA-A', 'HLA-B', 'HLA-C', 'HLA-DPB1', 'HLA-DQB1', 'HLA-DRB1', 'HLA-DRB3', 'HLA-DRB3', 'HLA-DRB5']:
