@@ -80,7 +80,7 @@ if __name__ == "__main__":
                                                 significant_clones_path=snakemake.input[1],
                                                 save_path=snakemake.output[0])
         if snakemake.params.platform == 'allele':
-            if snakemake.params.hla_to_consider == []:
+            if snakemake.params.hla_to_consider != []:
                 hla_keys = snakemake.params.hla_to_consider
             else:
                 hla_keys = pd.read_csv('data/hla_keys.csv')['0']

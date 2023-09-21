@@ -18,6 +18,7 @@ def create_significant_associations_df(cm_path, vdjdb_path, save_path, prefix='f
         covid_clones_beta += list(clean_beta_cm.columns[1:])
     res_beta = seqs2hamming(covid_clones_beta, viz_method='drl')
     vdjdb = pd.read_csv(vdjdb_path, sep='\t')
+    vdjdb = vdjdb[vdjdb.species == 'HomoSapiens']
     all_associations, epitopes = check_significant_epitopes_for_all_clusters(res=res_beta,
                                                                    vdjdb=vdjdb,
                                                                    gene=gene,

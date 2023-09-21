@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import gaussian_kde as kde
+from scipy.stats import zscore
 from matplotlib.colors import Normalize
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
@@ -212,8 +213,15 @@ def plot_clustermap_axes_based(usage_matrix, genes=['TRBV28', 'TRBV4-3', 'TRBV6-
     Z = linkage(usage_matrix[genes], 'complete')
     labels = fcluster(Z, 0.00001, criterion='distance')
     labels_order = np.argsort(labels)
-    sns.heatmap(usage_matrix.loc[labels_order, :][genes].T, ax=ax, cbar_kws={'label': 'V gene usage in a sample'},
+    needed_data = usage_matrix[genes]
+    for gene in genes:
+        needed_data[gene] = (usage_matrix[gene] - usage_matrix[gene].min()) / (usage_matrix[gene].max() - usage_matrix[gene].min())
+    sns.heatmap(needed_data.loc[labels_order, :][genes].T, ax=ax, cbar_kws={'label': 'V gene usage in a sample'},
                 cmap='vlag')
+    for k, gene in enumerate(genes):
+        zscores = zscore(usage_matrix.loc[labels_order, :][gene])
+        sns.lineplot(x=[i for i in range(len(usage_matrix[gene]))],
+                     y=-(zscores - zscores.min()) / (zscores.max() - zscores.min()) + 1 + k, ax=ax, color='black', linewidth=0.5)
     ax.get_xaxis().set_visible(False)
 
 

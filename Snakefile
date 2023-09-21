@@ -295,7 +295,7 @@ rule hla_clone_matrix_creation_TRA:
     script: 'source/clonotypes_matrix_creation.py'
 
 rule hla_associatiated_clones_search_TRB:
-    threads: 55
+    threads: 100
     params: hla_to_consider=config['allele_names'],
     input: 'data/run_to_number_of_clones_fmba_TRB.csv',
             'data/hla_desc_beta',
