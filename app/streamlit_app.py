@@ -11,7 +11,16 @@ from pandas.api.types import (
     is_numeric_dtype,
     is_object_dtype,
 )
-
+def check_distance(cdr1, cdr2, dist=1):
+    if len(cdr1) != len(cdr2):
+        return False
+    found_diff_count = 0
+    for c1, c2 in zip(cdr1, cdr2):
+        if c1 != c2 and found_diff_count < dist:
+            found_diff_count += 1
+        elif c1 != c2 and found_diff_count == dist:
+            return False
+    return True
 st.title("Predicting SARS-CoV-2 exposure using T-cell repertoire sequencing and machine learning")
 st.write(
     """This page accomodated the COVID-19 associated clonotypes found in the research [add link here!]. You can 
@@ -53,11 +62,11 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     with modification_container:
         to_filter_columns = st.multiselect("Filter dataframe on", df.columns)
         for column in to_filter_columns:
-            left, right = st.columns((1, 20))
+            left, mid, right = st.columns((1, 15, 5))
             left.write("↳")
             # Treat columns with < 10 unique values as categorical
             if is_categorical_dtype(df[column]) or df[column].nunique() < 10:
-                user_cat_input = right.multiselect(
+                user_cat_input = mid.multiselect(
                     f"Values for {column}",
                     df[column].unique(),
                     default=list(df[column].unique()),
@@ -67,7 +76,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 _min = float(df[column].min())
                 _max = float(df[column].max())
                 step = (_max - _min) / 100
-                user_num_input = right.slider(
+                user_num_input = mid.slider(
                     f"Values for {column}",
                     _min,
                     _max,
@@ -76,7 +85,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 )
                 df = df[df[column].between(*user_num_input)]
             elif is_datetime64_any_dtype(df[column]):
-                user_date_input = right.date_input(
+                user_date_input = mid.date_input(
                     f"Values for {column}",
                     value=(
                         df[column].min(),
@@ -88,17 +97,17 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                     start_date, end_date = user_date_input
                     df = df.loc[df[column].between(start_date, end_date)]
             else:
-                user_text_input = right.text_input(
+                user_text_input = mid.text_input(
                     f"Substring or regex in {column}",
                 )
-                mismatch = right.slider(
-                    f"Values for {column}",
-                    _min,
-                    _max,
-                    (_min, _max),
-                    step=step,
-                )                if user_text_input:
-                    df = df[df[column].str.contains(user_text_input)]
+                mismatch = right.select_slider(
+                    f"Allow X mismatches in CDR sequence",
+                    options=[x for x in range(5)],
+                    value=1
+                )
+                if user_text_input:
+                    df = df[df[column].apply(lambda x: check_distance(x, user_text_input, dist=mismatch))]
+                    # df = df[df[column].str.contains(user_text_input)]
 
     return df
 
