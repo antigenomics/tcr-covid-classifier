@@ -35,3 +35,24 @@ snakemake --cores 48
 ```
 You can specify less cores, but the code would be requiring more time to execute.
 Using 16gb RAM and 48 CPUs the code is expected to run for ~2 hours.  
+
+
+##Working with docker images
+
+### Building your image
+Run this in the directory with Dockerfile
+
+`docker build  -t [your image tag] .`
+
+### Running docker container
+Run anywhere
+
+`docker run -i -p 5000:5000 [your image tag] -d`
+
+### Pushing to docker hub 
+
+CHECK CREDENTIALS IN DOCKER DESKTOP
+
+`docker tag [your build tag] lizzka239/[your build tag]:latest`
+
+`docker push lizzka239/[your build tag]:latest`

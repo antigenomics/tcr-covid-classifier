@@ -201,7 +201,7 @@ significant_clones_distribution(significant_clonotype_matrix=beta_cm[beta_cm.run
 beta_cm[beta_cm.run.isin(train_runs)]
 
 
-# In[23]:
+# In[24]:
 
 
 fold_change_vdjdb_beta = get_top_changed_clonotypes(clonotype_matrix=beta_cm[beta_cm.run.isin(train_runs)],
@@ -213,20 +213,20 @@ fold_change_vdjdb_beta = get_top_changed_clonotypes(clonotype_matrix=beta_cm[bet
 fold_change_vdjdb_beta.dropna()
 
 
-# In[278]:
+# In[262]:
 
 
 plot_volcano(fold_change_vdjdb_beta, pval_threshold=0.2, fold_change_threshold=1.25)
 
 
-# In[29]:
+# In[263]:
 
 
 beta_cm_selected = beta_cm[['run'] + list(
     fold_change_vdjdb_beta[(fold_change_vdjdb_beta.log_fold_change > 1.25) & (fold_change_vdjdb_beta.pval < 0.2)].clone)]
 
 
-# In[30]:
+# In[264]:
 
 
 significant_clones_distribution(significant_clonotype_matrix=beta_cm_selected[beta_cm_selected.run.isin(test_runs)], 
@@ -236,7 +236,7 @@ significant_clones_distribution(significant_clonotype_matrix=beta_cm_selected[be
                                 by='covid',)
 
 
-# In[31]:
+# In[202]:
 
 
 beta_covid_vdjdb = vdjdb[(vdjdb['antigen.species'] == 'SARS-CoV-2') & (vdjdb.gene == 'TRB')]\
@@ -244,19 +244,19 @@ beta_covid_vdjdb = vdjdb[(vdjdb['antigen.species'] == 'SARS-CoV-2') & (vdjdb.gen
 beta_covid_vdjdb
 
 
-# In[32]:
+# In[203]:
 
 
 pvals_data = pd.read_csv('data/covid_significant_clone_pvals_fmba_TRB_vdjdb.csv').drop(columns=['Unnamed: 0']).rename(columns={'clone': 'cdr3'})
 
 
-# In[33]:
+# In[204]:
 
 
 pvals_data
 
 
-# In[34]:
+# In[205]:
 
 
 cluster_pvals = beta_covid_vdjdb.merge(pvals_data).groupby(by='cluster', as_index=False).mean().rename(columns={'cluster': 'clone'})
@@ -264,78 +264,19 @@ cluster_pvals.clone = 'cluster_' + cluster_pvals.clone
 cluster_pvals
 
 
-# In[35]:
+# In[206]:
 
 
 metaclone_beta_cm = make_metaclone_cm(beta_cm, beta_covid_vdjdb[beta_covid_vdjdb.cdr3.isin(beta_cm.columns)])
 
 
-# In[36]:
+# In[207]:
 
 
 metaclone_beta_cm.to_csv('data/clone_matrix_covid_fmba_TRB_metaclone_vdjdb.csv')
 
 
-# In[37]:
-
-
-metaclone_beta_cm
-
-
-# In[38]:
-
-
-fold_change_vdjdb_beta = get_top_changed_clonotypes(clonotype_matrix=metaclone_beta_cm[metaclone_beta_cm.run.isin(train_runs)],
-                           desc=desc, 
-                           pvals=cluster_pvals, 
-                           log_fold_change_threshold=2, 
-                           logp_threshold=1,
-                           healthy_col='covid', 
-                           healthy_label='healthy')
-fold_change_vdjdb_beta.dropna()
-
-
-# In[39]:
-
-
-data_with_epi_allele = fold_change_vdjdb_beta.dropna().sort_values(by='log_fold_change')
-data_with_epi_allele.clone = data_with_epi_allele.clone.apply(lambda x: x.split('_')[1])
-data_with_epi_allele = data_with_epi_allele.rename(columns={'clone': 'antigen.epitope'}).merge(vdjdb[['antigen.epitope', 'mhc.a']])
-data_with_epi_allele[data_with_epi_allele.log_fold_change > 1].drop_duplicates()['mhc.a'].value_counts()
-
-
-# In[40]:
-
-
-data_with_epi_allele[data_with_epi_allele.log_fold_change < 100]
-
-
-# In[41]:
-
-
-plot_volcano(fold_change_vdjdb_beta, pval_threshold=1, fold_change_threshold=1)
-
-
-# In[42]:
-
-
-beta_cm_selected_meta = metaclone_beta_cm[['run'] + list(
-    fold_change_vdjdb_beta[(fold_change_vdjdb_beta.log_fold_change > 1) & (fold_change_vdjdb_beta.pval <= 1)].clone)]
-
-
-# In[43]:
-
-
-beta_cm_selected_meta
-
-
-# In[44]:
-
-
-metaclone_beta_cm['cluster_AFLLFLVLI']
-
-
-# In[45]:
+# In[208]:
 
 
 alpha_cm = pd.read_csv('data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv').drop(columns=['Unnamed: 0'])
@@ -344,13 +285,13 @@ alpha_covid_vdjdb = vdjdb[(vdjdb['antigen.species'] == 'SARS-CoV-2') & (vdjdb.ge
                         [['cdr3', 'antigen.epitope']].rename(columns={'antigen.epitope': 'cluster'})
 
 
-# In[46]:
+# In[209]:
 
 
 alpha_cm = prepare_run_column(alpha_cm)
 
 
-# In[47]:
+# In[210]:
 
 
 significant_clones_distribution(significant_clonotype_matrix=alpha_cm[alpha_cm.run.isin(vdjdb_runs)], 
@@ -360,33 +301,32 @@ significant_clones_distribution(significant_clonotype_matrix=alpha_cm[alpha_cm.r
                                 by='covid',)
 
 
-# In[48]:
+# In[211]:
 
 
 fold_change_vdjdb_alpha = get_top_changed_clonotypes(clonotype_matrix=alpha_cm[alpha_cm.run.isin(train_runs)],
                            desc=desc, 
                            pvals=pd.read_csv('data/covid_significant_clone_pvals_fmba_TRA_vdjdb.csv').drop(columns=['Unnamed: 0']), 
-                           log_fold_change_threshold=2, 
-                           logp_threshold=1,
+                           run_to_number_of_clones=pd.read_csv('data/run_to_number_of_clones_fmba_TRA.csv'),
                            healthy_col='covid', 
                            healthy_label='healthy')
 fold_change_vdjdb_alpha.dropna()
 
 
-# In[49]:
+# In[306]:
 
 
-plot_volcano(fold_change_vdjdb_alpha, pval_threshold=0.2, fold_change_threshold=1.4)
+plot_volcano(fold_change_vdjdb_alpha, pval_threshold=0.2, fold_change_threshold=1.5)
 
 
-# In[50]:
+# In[307]:
 
 
 alpha_cm_selected = alpha_cm[['run'] + list(
-    fold_change_vdjdb_alpha[(fold_change_vdjdb_alpha.log_fold_change > 1.4) & (fold_change_vdjdb_alpha.pval < 0.2)].clone)]
+    fold_change_vdjdb_alpha[(fold_change_vdjdb_alpha.log_fold_change > 1.5) & (fold_change_vdjdb_alpha.pval < 0.2)].clone)]
 
 
-# In[51]:
+# In[308]:
 
 
 significant_clones_distribution(significant_clonotype_matrix=alpha_cm_selected[alpha_cm_selected.run.isin(test_runs)], 
@@ -396,7 +336,7 @@ significant_clones_distribution(significant_clonotype_matrix=alpha_cm_selected[a
                                 by='covid',)
 
 
-# In[52]:
+# In[221]:
 
 
 metaclone_alpha_cm = make_metaclone_cm(alpha_cm_selected, alpha_covid_vdjdb[alpha_covid_vdjdb.cdr3.isin(alpha_cm_selected.columns)])
@@ -405,23 +345,23 @@ metaclone_alpha_cm.to_csv('data/clone_matrix_covid_fmba_TRA_metaclone_vdjdb.csv'
 
 # # Training separate α/β classifiers
 
-# In[201]:
+# In[222]:
 
 
-runs = prepare_run_column(pd.read_csv('data/standardized_usage_matrix_fmba_TRA.csv'))
+runs = prepare_run_column(pd.read_csv('data/standardized_usage_matrix_fmba_TRA_v.csv'))
 
 
-# In[205]:
+# In[223]:
 
 
 runs = runs[runs.run.isin(vdjdb_runs)]
 
 
-# In[208]:
+# In[268]:
 
 
 data_beta = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_clones_fmba_TRB.csv',
-                     desc_path='data/standardized_usage_matrix_fmba_TRA.csv',
+                     desc_path='data/standardized_usage_matrix_fmba_TRA_v.csv',
                      clonotype_matrix_path='data/significant_clone_matrix_fisher_fmba_TRB_vdjdb.csv',
                      hla_keys_path='data/hla_keys.csv',
                      make_freq=True, 
@@ -433,69 +373,36 @@ data_beta = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_clo
                      raw_target_clumn_success_label='covid',).loc[runs.index]
 
 
-# In[209]:
+# In[269]:
 
 
 data_beta
 
 
-# In[210]:
+# In[270]:
 
 
 data_beta = data_beta[list(beta_cm_selected.columns[1:]) + ['covid', 'is_test_run']]
 
 
-# In[211]:
+# In[271]:
 
 
 data_beta.shape
 
 
-# In[212]:
+# In[272]:
 
 
 X_train, y_train, X_test, y_test = split_data(data=data_beta, y_column='covid', by='is_test_run')
 best_clfs_beta = evaluate_models(X_train, y_train, X_test, y_test, get_parameters(), scoring_function='f1_weighted', debug=True)
 
 
-# In[213]:
-
-
-best_clfs_beta[0]['svm'].predict(X_test)
-
-
-# In[214]:
-
-
-pred = pd.DataFrame({'test': y_test, 'pred':best_clfs_beta[0]['svm'].predict(X_test)})
-pred['correct'] = pred.test == pred.pred
-
-
-# In[215]:
-
-
-pred.correct.value_counts()
-
-
-# In[216]:
-
-
-best_clfs_beta[0]['svm'].score(X_test, y_test)
-
-
-# In[217]:
-
-
-proba_labels = y_test.apply(lambda x: 'healthy' if x == 0 else 'covid')
-probability_df = pd.DataFrame({'beta_proba': best_clfs_beta[0]['svm'].predict_proba(X_test)[::, 1], 'covid': proba_labels})
-plot_waterfall_by_column(probability_df, proba_column='beta_proba', label_column='covid')
-
-
-# In[219]:
+# In[309]:
 
 
 data_alpha = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_clones_fmba_TRA.csv',
-                     desc_path='data/standardized_usage_matrix_fmba_TRA.csv',
+                     desc_path='data/standardized_usage_matrix_fmba_TRA_v.csv',
                      clonotype_matrix_path='data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv',
                      hla_keys_path='data/hla_keys.csv',
                      make_freq=True,
@@ -506,13 +413,13 @@ data_alpha = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_cl
                      raw_target_clumn_success_label='covid',).loc[runs.index]
 
 
-# In[220]:
+# In[310]:
 
 
 data_alpha = data_alpha[list(alpha_cm_selected.columns[1:]) + ['covid', 'is_test_run']]
 
 
-# In[221]:
+# In[311]:
 
 
 X_train_alpha, y_train_alpha, X_test_alpha, y_test_alpha = split_data(data=data_alpha, y_column='covid', by='is_test_run')
@@ -524,11 +431,11 @@ best_clfs_alpha = evaluate_models(X_train_alpha, y_train_alpha,
 
 # # Training joint αβ classifier
 
-# In[222]:
+# In[312]:
 
 
 data_alpha_for_joint = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_clones_fmba_TRA.csv',
-                     desc_path='data/standardized_usage_matrix_fmba_TRA.csv',
+                     desc_path='data/standardized_usage_matrix_fmba_TRA_v.csv',
                      clonotype_matrix_path='data/significant_clone_matrix_fisher_fmba_TRA_vdjdb.csv',
                      hla_keys_path='data/hla_keys.csv',
                      make_freq=True,
@@ -540,7 +447,7 @@ data_alpha_for_joint = prepare_data(run_to_number_of_clones_path='data/run_to_nu
                      metadata_columns=['project', 'is_test_run']).loc[runs.index]
 print('alpha ready')
 data_beta_for_joint = prepare_data(run_to_number_of_clones_path='data/run_to_number_of_clones_fmba_TRB.csv',
-                     desc_path='data/standardized_usage_matrix_fmba_TRA.csv',
+                     desc_path='data/standardized_usage_matrix_fmba_TRA_v.csv',
                      clonotype_matrix_path='data/significant_clone_matrix_fisher_fmba_TRB_vdjdb.csv',
                      hla_keys_path='data/hla_keys.csv',
                      make_freq=True, 
@@ -551,25 +458,25 @@ data_beta_for_joint = prepare_data(run_to_number_of_clones_path='data/run_to_num
                      raw_target_clumn_success_label='covid',).loc[runs.index]
 
 
-# In[223]:
+# In[313]:
 
 
 data_joint = pd.concat([data_beta_for_joint, data_alpha_for_joint.drop(columns=['covid', 'is_test_run'])], axis=1)
 
 
-# In[224]:
+# In[314]:
 
 
 data_joint = data_joint[list(alpha_cm_selected.columns[1:]) + list(beta_cm_selected.columns[1:]) + ['covid', 'project', 'is_test_run']]
 
 
-# In[225]:
+# In[315]:
 
 
 data_joint
 
 
-# In[226]:
+# In[316]:
 
 
 X_train_joint, y_train_joint, X_test_joint, y_test_joint = split_data(data=data_joint.drop(columns=['project']), y_column='covid', by='is_test_run')
@@ -578,7 +485,7 @@ best_clfs_joint = evaluate_models(X_train_joint, y_train_joint, X_test_joint, y_
                                   get_parameters(), scoring_function='f1_weighted', debug=True)
 
 
-# In[227]:
+# In[317]:
 
 
 all_clfs = {
@@ -608,13 +515,13 @@ y_train_data={
 }
 
 
-# In[228]:
+# In[318]:
 
 
 data_joint
 
 
-# In[229]:
+# In[319]:
 
 
 model_df = []
@@ -629,13 +536,13 @@ for data_type in ['beta','alpha','joint']:
 comparison_df = pd.DataFrame({'model':model_df, 'f1': f1_df, 'data_type':data_type_df})
 
 
-# In[230]:
+# In[320]:
 
 
 comparison_df
 
 
-# In[231]:
+# In[321]:
 
 
 fig, ax = plt.subplots()
@@ -643,13 +550,13 @@ sns.catplot(data=comparison_df, x="model", y="f1", hue="data_type", kind="point"
 plt.close(1)
 
 
-# In[232]:
+# In[322]:
 
 
 sns.stripplot(data=comparison_df, x="model", y="f1", hue="data_type",)
 
 
-# In[233]:
+# In[323]:
 
 
 all_clfs['joint']
@@ -657,7 +564,7 @@ all_clfs['joint']
 
 # # Making metrics dataframe
 
-# In[253]:
+# In[324]:
 
 
 clf_name = []
@@ -675,7 +582,7 @@ for key, clfs in all_clfs.items():
     recall.append(recall_score(y_test_data[key], clf_predictions))
 
 
-# In[254]:
+# In[325]:
 
 
 plotting_df = pd.DataFrame({
@@ -687,13 +594,13 @@ plotting_df = pd.DataFrame({
 })
 
 
-# In[255]:
+# In[326]:
 
 
 plotting_df
 
 
-# In[256]:
+# In[327]:
 
 
 plotting_df = plotting_df.applymap(lambda x: round(x, 2) if isinstance(x, float) else x)
@@ -701,7 +608,7 @@ plotting_df = plotting_df.applymap(lambda x: round(x, 2) if isinstance(x, float)
 
 # # Preparing data for proba comparison
 
-# In[257]:
+# In[328]:
 
 
 beta_predictions = all_clfs['beta'][0]['xgboost'].predict_proba(X_test_data['beta'])[::,1]
@@ -715,7 +622,7 @@ probability_df = pd.DataFrame({
 })
 
 
-# In[258]:
+# In[329]:
 
 
 probability_df
@@ -723,50 +630,50 @@ probability_df
 
 # # One folder out CV
 
-# In[259]:
+# In[330]:
 
 
 data_joint
 
 
-# In[260]:
+# In[331]:
 
 
 desc_for_projects = pd.read_csv('data/desc_fmba_new_split.csv').drop(columns=['Unnamed: 0'])[['run', 'folder']]
 desc_for_projects.head()
 
 
-# In[261]:
+# In[332]:
 
 
 data_joint_proj = data_joint.copy()
 
 
-# In[262]:
+# In[333]:
 
 
 data_joint_proj['project'] = desc_for_projects.folder.apply(lambda x: x.replace('_DNA', '').split('/')[-1].split('_')[-1])
 
 
-# In[263]:
+# In[334]:
 
 
 data_joint_proj.project.unique()
 
 
-# In[264]:
+# In[335]:
 
 
 data_joint_proj.head()
 
 
-# In[265]:
+# In[336]:
 
 
 data_joint_proj
 
 
-# In[266]:
+# In[337]:
 
 
 metrics_df = []
@@ -783,7 +690,7 @@ for metrics, metrics_name in zip([f1_score, precision_score, recall_score], ['f1
                                  ))
 
 
-# In[267]:
+# In[338]:
 
 
 def make_score_column(df):
@@ -798,20 +705,20 @@ metrics_df.folder = metrics_df.folder.apply(lambda x: x.replace('_DNA', '').spli
 
 # # Plotting
 
-# In[268]:
+# In[339]:
 
 
 for key in all_clfs:
     all_clfs[key][0]['xgboost'].fit(X_train_data[key], y_train_data[key])
 
 
-# In[269]:
+# In[340]:
 
 
 all_clfs.keys()
 
 
-# In[279]:
+# In[342]:
 
 
 fig = plt.figure(figsize=(15, 20))
@@ -855,7 +762,7 @@ ax2.text(delta_x, delta_y, 'C',
 ########################################################
 
 ax3 = fig.add_subplot(gs[2:4, 0])
-plot_volcano(fold_change_vdjdb_alpha, pval_threshold=0.2, fold_change_threshold=1.4, ax=ax3)
+plot_volcano(fold_change_vdjdb_alpha, pval_threshold=0.2, fold_change_threshold=1.5, ax=ax3)
 
 ax4 = fig.add_subplot(gs[2:4, 1])
 ax5 = fig.add_subplot(gs[2:4, 2])
@@ -962,7 +869,7 @@ plt.savefig("figures/supp_fig3.png")
 plt.show()
 
 
-# Figure 4. Analysis of machine learning approaches applied to FMBA TCRβ and TCRα biomarkers. 
+# Supplementry Figure 4. Analysis of machine learning approaches applied to FMBA TCRβ and TCRα biomarkers. 
 # 
 # A, B, C. Distribution of target metrics (f1-score, precision, recall) for all the evaluated models.
 # 
@@ -977,6 +884,24 @@ plt.show()
 # H. Evaluation of target metrics (f1-score, precision, recall) for one batch out cross validation.
 # 
 # I. Feature importance plot for the XGBoost classifier based on TRCα and TCRβ based biomarkers and HLA presence features.
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
 
 # In[ ]:
 
