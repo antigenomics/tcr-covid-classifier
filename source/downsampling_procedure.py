@@ -16,7 +16,6 @@ error_list = []
 
 def update_counts_for_run(path_to_run, run_frequencies_v, run_frequencies_j, path_to_save, count_of_clones_in_sample=None):
     run_name = path_to_run.split('/')[-1]
-    # print(f'started {run_name} at {datetime.datetime.now()}')
     try:
         if '.clonotypes.' not in path_to_run:
             raw_data = pd.read_csv(path_to_run, sep='\t')

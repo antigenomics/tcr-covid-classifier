@@ -1,5 +1,6 @@
 FROM avsastry/biopython:1.0
-EXPOSE 5000
+ENV port_num=5001
+EXPOSE $port_num
 
 COPY app docker_app/app
 COPY utils docker_app/utils
@@ -16,4 +17,4 @@ RUN pip install multipy
 RUN pip install scipy
 RUN pip install logomaker
 WORKDIR docker_app
-ENTRYPOINT ["streamlit", "run", "app/streamlit_app.py", "--server.port=5000"]
+ENTRYPOINT streamlit run app/streamlit_app.py --server.port=$port_num

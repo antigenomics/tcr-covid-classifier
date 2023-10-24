@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import gaussian_kde as kde
-from scipy.stats import zscore
 from matplotlib.colors import Normalize
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.stats import zscore
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier

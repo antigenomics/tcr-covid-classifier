@@ -39,3 +39,8 @@ def get_coloring(clustering_res, useful_cdrs):
 def plot_logo(clonotypes, ax):
     mat_df = logomaker.alignment_to_matrix(clonotypes)
     logomaker.Logo(mat_df, color_scheme='skylign_protein', ax=ax)
+
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode('utf-8')
