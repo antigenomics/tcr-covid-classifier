@@ -3,6 +3,7 @@ ENV port_num=5001
 EXPOSE $port_num
 
 COPY app docker_app/app
+COPY .streamlit docker_app/.streamlit
 COPY utils docker_app/utils
 COPY figures/associations docker_app/figures/associations
 COPY figures/*.csv docker_app/figures
