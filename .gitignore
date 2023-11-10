@@ -1,0 +1,9 @@
+﻿.idea
+*/.ipynb_checkpoints
+data/hla_associated_clones/.snakemake_timestamp
+*.snakemake_timestamp
+utils/__pycache__
+publication_zipped
+publication_zipped.zip
+.ipynb_checkpoints
+app/__pycache__
