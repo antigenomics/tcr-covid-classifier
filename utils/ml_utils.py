@@ -1,7 +1,6 @@
 import warnings
 
 import pandas as pd
-from imblearn.pipeline import Pipeline
 from sklearn.metrics import f1_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
@@ -59,38 +58,39 @@ def get_model(model):
 
 def get_parameters(models=None):
     params = {
-        'svm': {'model__C': (1, 5, 10, 50, 100),
-                'model__kernel': ('linear', 'poly', 'rbf', 'sigmoid'),
-                'model__probability': [True],
-                'model__random_state': [42]},
-        'ab': {'model__n_estimators': (10, 25, 50, 100, 125, 150, 200),
-               'model__base_estimator': (DecisionTreeClassifier(max_depth=1), DecisionTreeClassifier(max_depth=3)),
-               'model__random_state': [42]},
+        'svm': {'C': (1, 5, 10, 50, 100),
+                'kernel': ('linear', 'poly', 'rbf', 'sigmoid'),
+                'probability': [True],
+                'random_state': [42]},
+        'ab': {'n_estimators': (10, 25, 50, 100, 125, 150, 200),
+               'base_estimator': (DecisionTreeClassifier(max_depth=1), DecisionTreeClassifier(max_depth=3)),
+               'random_state': [42]},
 
-        'knn': {'model__n_neighbors': (3, 5, 10, 50, 75, 100),
-                'model__leaf_size': (1, 2, 3, 5, 10, 15, 20),
-                'model__weights': ['uniform', 'distance']},
+        'knn': {'n_neighbors': (3, 5, 10, 50, 75, 100),
+                'leaf_size': (1, 2, 3, 5, 10, 15, 20),
+                'weights': ['uniform', 'distance']},
 
-        'rfc': {'model__max_depth': (1, 2, 3),
-                'model__n_estimators': (50, 75, 100, 125, 150, 200),
-                'model__min_samples_leaf': (8, 10),
-                'model__oob_score': (False, True),
-                'model__random_state': [42],
-                'model__n_jobs': [-1]},
+        'rfc': {'max_depth': (1, 2, 3),
+                'n_estimators': (50, 75, 100, 125, 150, 200),
+                'min_samples_leaf': (8, 10),
+                'oob_score': (False, True),
+                'random_state': [42],
+                'n_jobs': [-1]},
 
-        'mlpclassifier': {'model__hidden_layer_sizes': (
-            (100, 60, 30, 10),
-            (150, 100, 50, 25, 10),
-            (100, 50, 25, 10)),
-            'model__alpha': (0.0001, 0.001, 0.00001, 0.01),
-            'model__learning_rate': ['constant', 'adaptive'],
-            'model__max_iter': [1000],
-            'model__random_state': [42]},
+        'mlpclassifier': {'hidden_layer_sizes': (
+            (3000, 1500, 100, 60, 30, 10),
+            (3000, 1500, 150, 100, 50, 25, 10),
+            (2500, 2000, 150, 100, 50, 25, 10),
+            (3000, 1500, 100, 50, 25, 10)),
+            'alpha': (0.0001, 0.001, 0.01),
+            'learning_rate': ['adaptive'],
+            'max_iter': [1000],
+            'random_state': [42]},
 
-        'xgboost': {'model__n_estimators': (10, 25, 50, 75, 100),
-                    'model__subsample': (0.25, 0.5, 0.75, 1),
-                    'model__random_state': [42],
-                    'model__n_jobs': [-1]},
+        'xgboost': {'n_estimators': (10, 25, 50, 75, 100),
+                    'subsample': (0.25, 0.5, 0.75, 1),
+                    'random_state': [42],
+                    'n_jobs': [-1]},
     }
     if models is not None:
         return {x: y for x, y in params.items() if x in models}
@@ -183,19 +183,14 @@ def evaluate_models(X_train, y_train, X_test, y_test, model_params, scoring_func
             print(f'Started evaluating {name}')
         model = get_model(name)[0]
 
-        steps = [('model', model)]
-
-        pipeline = Pipeline(steps=steps)
-        clf = GridSearchCV(pipeline, param, scoring=scoring_function, cv=skf, n_jobs=-1)
+        clf = GridSearchCV(model, param, scoring=scoring_function, cv=skf, n_jobs=-1)
         clf.fit(X_train, y_train)
 
-        pipe = clf.best_estimator_['model']
-
-        scores.append(f1_score(y_test, pipe.predict(X_test)))
+        scores.append(f1_score(y_test, clf.predict(X_test)))
         params.append(clf.best_params_)
         if debug:
             print(f'Best params for {name}:', clf.best_params_)
-            print('Test f1-score for the best model %.2f' % f1_score(y_test, pipe.predict(X_test)))
+            print('Test f1-score for the best model %.2f' % f1_score(y_test, clf.predict(X_test)))
             print()
 
         best_clfs_encode_fmba[name] = clf.best_estimator_
@@ -272,15 +267,15 @@ def make_hla_predictor(hla, run_to_number_of_clones_path, desc_path, clonotype_m
     if allele_percent < 1:
         return allele_percent, features_count, None, 0, 0, 0
     X_train, y_train, X_test, y_test = split_data_by_batch(data=data,
-                                                           test_batches=['2020/10_FMBA_NovaSeq6'],
+                                                           test_batches=['#6'],
                                                            y_column='allele',
-                                                           batch_column='folder')
+                                                           batch_column='batch')
 
     clfs, best_score, model_name = evaluate_models(X_train, y_train, X_test, y_test, get_parameters(),
                                                    scoring_function='f1')
 
     cv_f1, cv_std = cross_validation_between_batches(clfs[model_name], data, data.folder.unique(), y_column='allele',
-                                                     batch_column='folder')
+                                                     batch_column='batch')
     if debug:
         print(f'Features count is {data.shape[1]}')
         print(f'There are {data.allele.sum()} samples with {hla}')

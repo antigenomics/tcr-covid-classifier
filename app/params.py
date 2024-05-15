@@ -1,6 +1,6 @@
 github_link = 'https://github.com/antigenomics/tcr-covid-classifier'
 zenodo_link = 'https://zenodo.org/record/8362803'
-preprint_link = 'https://docs.google.com/document/d/1sMOrdsspdResrqM3fX3lY3Z-Bc6cOXh5dULpZtWT0os/edit#heading=h.vbacfjakxjr'
+preprint_link = 'https://www.biorxiv.org/content/10.1101/2023.11.08.566227v1'
 button_style = 'display: inline-block; padding: 12px 20px; background-color: #ddece4; color: #237c54; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;'
 abstract_text = '''
 * a ML approach applied to two large datasets 
