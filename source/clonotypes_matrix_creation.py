@@ -71,11 +71,11 @@ def process_one_file(run):
         print(f'processed {index} runs')
 
 
-def process_all_files(save_path, most_common_clonotypes, um, mismatch_max=0, raw_data_folder='downsampled_new'):
+def process_all_files(save_path, most_common_clonotypes, um, threads, mismatch_max=0, raw_data_folder='downsampled_new'):
     run_to_presence_of_clonotypes['cdr3aa'] = most_common_clonotypes['cdr3aa']
     runs = [(x, mismatch_max, most_common_clonotypes, raw_data_folder, i) for i, x in enumerate(um['run'].tolist())]
     print('Start processing')
-    with Pool(snakemake.threads) as p:
+    with Pool(threads) as p:
         p.map(process_one_file, runs)  # , chunksize=10)
         # p.close()
         # p.terminate()
@@ -99,7 +99,9 @@ def create_matrix_for_allele_data(um_path, top_clonotypes_path, clone_matrices_p
             most_common_clonotypes=most_common_clonotypes,
             um=um,
             mismatch_max=1,
-            raw_data_folder=raw_data_folder)
+            raw_data_folder=raw_data_folder,
+            threads=snakemake.threads
+        )
 
 
 def clonotype_matrix_for_projects(projects_list, most_common_clones_path, save_path, mismatch=0):
@@ -108,7 +110,8 @@ def clonotype_matrix_for_projects(projects_list, most_common_clones_path, save_p
     process_all_files(save_path=save_path,
                       most_common_clonotypes=pd.read_csv(most_common_clones_path),
                       um=um,
-                      mismatch_max=mismatch)
+                      mismatch_max=mismatch,
+                      threads=snakemake.threads)
 
 
 if __name__ == "__main__":
@@ -122,6 +125,7 @@ if __name__ == "__main__":
                               um=um,
                               mismatch_max=1,
                               raw_data_folder=snakemake.input[1],
+                              threads=snakemake.threads
                               )
         if snakemake.params.platform == 'fmba-allele':
             create_matrix_for_allele_data(um_path=snakemake.input[0],
