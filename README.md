@@ -7,7 +7,7 @@ The overall pipeline is shown below:
 The visualization of the biomarkers inferred can be found [here](https://covidbiomarkers.cdr3.net/) (under construction). 
 For a more detailed description of the dataset see Zenodo record.
 ## Data availability
-All the data generated in this research was uploaded to [Zenodo platform](https://zenodo.org/records/8362803) (a cohort of >1200 healthy donors and COVID-19 patients).
+All the data generated in this research was uploaded to [Zenodo platform](https://zenodo.org/records/15077567) (a cohort of >1200 healthy donors and COVID-19 patients).
 The dataset contains ~40 millions TCR alpha clonotypes and ~20 millions TCR beta clonotypes altogether. 
 This makes our dataset one of the largest repertoire sequencing datasets published to date.
 For more information about the dataset see Zenodo record.
